@@ -1,0 +1,15 @@
+[project]
+name = "polstance"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "beautifulsoup4>=4.14.2",
+    "google-genai>=1.39.1",
+    "load-dotenv>=0.1.0",
+    "selenium>=4.35.0",
+    "torch>=2.8.0",
+    "tqdm>=4.67.1",
+    "transformers[sentencepiece]>=4.56.2",
+]
