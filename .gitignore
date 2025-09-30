@@ -17,3 +17,6 @@ articles.json
 
 # Database files
 *.db
+
+# Model files
+*.pth

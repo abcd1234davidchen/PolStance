@@ -8,6 +8,7 @@ dependencies = [
     "beautifulsoup4>=4.14.2",
     "google-genai>=1.39.1",
     "load-dotenv>=0.1.0",
+    "pandas>=2.3.3",
     "selenium>=4.35.0",
     "torch>=2.8.0",
     "tqdm>=4.67.1",
