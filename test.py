@@ -53,7 +53,7 @@ def cleanup_all_drivers():
 
 def test_site_access():
     test_urls = [
-        'https://www.thenewslens.com/article/200403',
+        'https://www.thenewslens.com/article/200269'
     ]
     
     for url in test_urls:
@@ -96,6 +96,12 @@ def test_site_access():
                     if partialArticle:
                         sample_text = partialArticle[0][:100]
                         print(f"  - Sample text: {sample_text}...")
+                    else:
+                        partialArticle = [p.get_text() for p in soup.find_all('p')]
+                        print(f"  - No paragraphs with ck-section class, found {len(partialArticle)} total paragraphs")
+                    if partialArticle:
+                        articleText = "\n".join(partialArticle)
+                        print(articleText)
                 else:
                     print(f"  - Article section not found")
                     

@@ -96,6 +96,8 @@ def addArticleUrl(url,max_retries=3):
                 with getDBConnection() as conn:
                     cursor = conn.cursor()
                     cursor.execute('INSERT OR IGNORE INTO articles (url, text, label_kmt, label_dpp, label_tpp, label_neutral) VALUES (?, ?, ?, ?, ?, ?)', (url, "", -1, -1, -1, -1))
+                    if cursor.rowcount > 0:
+                        print(f"Added new URL: {url}")
                     conn.commit()
             return True
         except sqlite3.OperationalError as e:
@@ -143,7 +145,7 @@ def chinatimesCrawler():
     chrome_options.add_argument("--user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
     driver = webdriver.Chrome(options=chrome_options)
     try:
-        for page in tqdm(range(1, 5), desc="Crawling pages"):
+        for page in tqdm(range(1, 3), desc="Crawling pages"):
             url = f"https://www.chinatimes.com/politic/total?page={page}&chdtv"
             driver.get(url)
             try:
@@ -225,7 +227,9 @@ def readTheNewsLensArticle(url):
         soup = soup.find('section', class_='item article-body default-color mb-6 mt-5')
         partialArticle = [p.get_text() for p in soup.find_all('p')if p.get('class') == ['ck-section']]
         articleText = "\n".join(partialArticle)
-        print(articleText)
+        if articleText == "":
+            partialArticle = [p.get_text() for p in soup.find_all('p')]
+            articleText = "\n".join(partialArticle)
         return articleText
     except Exception as e:
         print(f"Error reading article from {url}: {e}")
@@ -233,7 +237,7 @@ def readTheNewsLensArticle(url):
 
 def concurrentTNLCrawler():
     initDB()
-    TNLUrls = [f"https://www.thenewslens.com/category/politics/page{page}" for page in range(2, 100)]
+    TNLUrls = [f"https://www.thenewslens.com/category/politics/page{page}" for page in range(2, 10)]
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
         future_to_url = {executor.submit(theNewsLensCrawler, url): url for url in TNLUrls}
@@ -244,7 +248,6 @@ def concurrentTNLCrawler():
                 if article_list:
                     for article_url in article_list:
                         addArticleUrl(article_url)
-                        print(f"Added article URL: {article_url}")
             except Exception as e:
                 print(f"Error crawling {url}: {e}")
 
@@ -274,11 +277,30 @@ def concurrentReadArticles():
                 if articles_text:
                     if updateArticleText(url, articles_text):
                         print(f"Updated article from {url}")
+                        print(articles_text[:200])
                 else:
                     print(f"No text extracted from {url}")
             except Exception as e:
                 print(f"Error fetching article from {url}: {e}")
-    
+
+def cleanDB():
+    initDB()
+    with getDBConnection() as conn:
+        cursor = conn.cursor()
+        cursor.execute('DELETE FROM articles WHERE text IS NULL OR text = ""')
+        cursor.execute('SELECT id,url,text FROM articles WHERE text IS NOT NULL AND text != ""')
+        articles = cursor.fetchall()
+        for article_id, url, text in tqdm(articles, desc="Cleaning DB"):
+            if text is None or text=="":
+                continue
+            cleaned_text = text.replace("【加入關鍵評論網會員】每天精彩好文直送你的信箱，每週獨享編輯精選、時事精選、藝文週報等特製電子報。還可留言與作者、記者、編輯討論文章內容。立刻點擊免費加入會員！", "")
+            if len(cleaned_text.strip()) < 150:
+                cursor.execute('DELETE FROM articles WHERE id = ?', (article_id,))
+            else:
+                if cleaned_text != text:
+                    cursor.execute('UPDATE articles SET text = ? WHERE id = ?', (cleaned_text, article_id))
+        conn.commit()
+            
 def signal_handler(sig, frame):
     print('\nCleaning up before exit...')
     cleanup_driver()
@@ -290,9 +312,10 @@ signal.signal(signal.SIGTERM, signal_handler)
 
 if __name__ == "__main__":
     try:
-        # chinatimesCrawler()
-        # concurrentTNLCrawler()
+        chinatimesCrawler()
+        concurrentTNLCrawler()
         concurrentReadArticles()
+        cleanDB()
     except KeyboardInterrupt:
         print("\nInterrupted by user")
     except Exception as e:
