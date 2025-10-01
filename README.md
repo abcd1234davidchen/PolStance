@@ -9,12 +9,10 @@ The PolStance project take advantage of the power of transformer-based models to
    - [x] Crawl from ctinews.com/tags/國民黨
  - [x] Implemented data cleaning
  - [x] Implemented data labeling using Gemini flash
- - [ ] Implemented model training using BERT
- - [ ] Setup inference pipeline
- - [ ] Documented code and usage instructions
-
-## Planned
- - [ ] Find more sources
+ - [x] Implemented model training using BERT
+ - [x] Setup simplified inference pipeline
+ - [ ] Setup web app for easy access
+ - [ ] Always something to improve
 
 ## Crawlers
 The crawlers are implemented in `getTitle.py`. The script uses selenium for web scraping and BeautifulSoup for HTML parsing. It includes functions to crawl titles from chinatimes.com and thenewslens.com.

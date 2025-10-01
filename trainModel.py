@@ -210,14 +210,15 @@ if __name__ == "__main__":
         epoch_train_loss = 0
         epoch_train_accuracy = 0
         valid_batches = 0
-        for batch in tqdm(train_loader):
+        pbar = tqdm(train_loader, desc=f"Epoch {epoch+1}/{num_epochs} Training")
+        for batch in pbar:
             train_metrics = train_step(model, batch, optimizer, criterion, device)
             if train_metrics['loss'] > 0:
                 epoch_train_loss += train_metrics['loss']
                 epoch_train_accuracy += train_metrics['accuracy']
                 valid_batches += 1
             if valid_batches % 30 == 0:
-                print(f"  Valid batches: {valid_batches}, Avg Loss: {epoch_train_loss/valid_batches:.4f}, Avg Acc: {epoch_train_accuracy/valid_batches:.4f}")
+                pbar.set_description(f"Epoch: {epoch+1}/{num_epochs} Loss: {epoch_train_loss/valid_batches:.4f}, Acc: {epoch_train_accuracy/valid_batches:.4f}")
         print("Evaluating on validation set...")
         val_metrics = evaluate(model, val_loader, criterion, device)
 
