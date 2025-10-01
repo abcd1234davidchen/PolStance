@@ -14,7 +14,7 @@ def generateStance(articleText):
         api_key=os.environ.get("GEMINI_API_KEY"),
     )
 
-    model = "gemini-flash-latest"
+    model = "gemini-flash-lite-latest"
     contents = [
         types.Content(
             role="user",
@@ -30,7 +30,7 @@ def generateStance(articleText):
         response_mime_type="application/json",
         response_schema=genai.types.Schema(
             type = genai.types.Type.OBJECT,
-            required = ["a", "b", "c", "d", "e","f","g","h"],
+            required = ["a", "b", "c", "d", "e","f","g","h","i","j","k","l"],
             properties = {
                 "a": genai.types.Schema(
                     type = genai.types.Type.INTEGER,
@@ -54,6 +54,18 @@ def generateStance(articleText):
                     type = genai.types.Type.INTEGER,
                 ),
                 "h": genai.types.Schema(
+                    type = genai.types.Type.INTEGER,
+                ),
+                "i": genai.types.Schema(
+                    type = genai.types.Type.INTEGER,
+                ),
+                "j": genai.types.Schema(
+                    type = genai.types.Type.INTEGER,
+                ),
+                "k": genai.types.Schema(
+                    type = genai.types.Type.INTEGER,
+                ),
+                "l": genai.types.Schema(
                     type = genai.types.Type.INTEGER,
                 ),
             },
@@ -102,7 +114,8 @@ def readDB():
     return rows
 
 def updateArticleLabels(article_ida, article_idb, article_idc, article_idd,
-                         article_ide, article_idf, article_idg, article_idh, labels):
+                         article_ide, article_idf, article_idg, article_idh,
+                         article_idi, article_idj, article_idk, article_idl, labels):
     conn = sqlite3.connect('title.db')
     cursor = conn.cursor()
     cursor.execute('''
@@ -145,31 +158,64 @@ def updateArticleLabels(article_ida, article_idb, article_idc, article_idd,
         SET label = ?
         WHERE id = ?
     ''', (labels.get("h", 0), article_idh))
+    cursor.execute('''
+        UPDATE titles
+        SET label = ?
+        WHERE id = ?
+    ''', (labels.get("i", 0), article_idi))
+    cursor.execute('''
+        UPDATE titles
+        SET label = ?
+        WHERE id = ?
+    ''', (labels.get("j", 0), article_idj))
+    cursor.execute('''
+        UPDATE titles
+        SET label = ?
+        WHERE id = ?
+    ''', (labels.get("k", 0), article_idk))
+    cursor.execute('''
+        UPDATE titles
+        SET label = ?
+        WHERE id = ?
+    ''', (labels.get("l", 0), article_idl))
     conn.commit()
     conn.close()
 
 def labelArticles():
     rows = readDB()
-    pbar = tqdm.tqdm(range(0,len(rows),8), total=(len(rows)+7)//8, desc="Labeling Articles")
+    pbar = tqdm.tqdm(range(0, len(rows), 12), total=(len(rows)+11)//12, desc="Labeling Articles")
     for i in pbar:
-        article_ida, _, texta = rows[i]
-        article_idc, _, textc = rows[i+2] if i+2 < len(rows) else (article_ida, _, texta)
-        article_idd, _, textd = rows[i+3] if i+3 < len(rows) else (article_ida, _, texta)
-        article_idb, _, textb = rows[i+1] if i+1 < len(rows) else (article_ida, _, texta)
-        article_ide, _, texte = rows[i+4] if i+4 < len(rows) else (article_ida, _, texta)
-        article_idf, _, textf = rows[i+5] if i+5 < len(rows) else (article_ida, _, texta)
-        article_idg, _, textg = rows[i+6] if i+6 < len(rows) else (article_ida, _, texta)
-        article_idh, _, texth = rows[i+7] if i+7 < len(rows) else (article_ida, _, texta)
+        # 取出12篇，若不足則補最後一篇
+        def get_row(idx):
+            return rows[idx] if idx < len(rows) else rows[i]
+        article_ida, _, texta = get_row(i)
+        article_idb, _, textb = get_row(i+1)
+        article_idc, _, textc = get_row(i+2)
+        article_idd, _, textd = get_row(i+3)
+        article_ide, _, texte = get_row(i+4)
+        article_idf, _, textf = get_row(i+5)
+        article_idg, _, textg = get_row(i+6)
+        article_idh, _, texth = get_row(i+7)
+        article_idi, _, texti = get_row(i+8)
+        article_idj, _, textj = get_row(i+9)
+        article_idk, _, textk = get_row(i+10)
+        article_idl, _, textl = get_row(i+11)
 
-        combined_text = (f"a. {texta}\nb. {textb}\nc. {textc}\nd. {textd}\n"
-                         f"e. {texte}\nf. {textf}\ng. {textg}\nh. {texth}")
-        batch_num = (i // 8) + 1
-        pbar.set_description(f"Labeling Batch {batch_num} ID: {article_ida}~{article_idh}")
+        combined_text = (
+            f"a. {texta}\nb. {textb}\nc. {textc}\nd. {textd}\n"
+            f"e. {texte}\nf. {textf}\ng. {textg}\nh. {texth}\n"
+            f"i. {texti}\nj. {textj}\nk. {textk}\nl. {textl}"
+        )
+        batch_num = (i // 12) + 1
+        pbar.set_description(f"Labeling Batch {batch_num} ID: {article_ida}~{article_idl}")
         try:
             labels = generateStance(combined_text)
             if labels and isinstance(labels, dict):
-                updateArticleLabels(article_ida, article_idb, article_idc, article_idd,
-                                     article_ide, article_idf, article_idg, article_idh, labels)
+                updateArticleLabels(
+                    article_ida, article_idb, article_idc, article_idd,
+                    article_ide, article_idf, article_idg, article_idh,
+                    article_idi, article_idj, article_idk, article_idl, labels
+                )
             else:
                 tqdm.tqdm.write(f"No labels generated for article ID {article_ida}")
         except Exception as e:

@@ -23,9 +23,6 @@ class StanceClassifier(nn.Module):
             nn.Dropout(dropout_rate),
             nn.Linear(transformer_model.config.hidden_size//2, num_classes)
         )
-        #nn.Linear(transformer_model.config.hidden_size, num_classes)
-        #torch.nn.init.normal_(self.classifier.weight, std=0.01)
-        #torch.nn.init.zeros_(self.classifier.bias)
         self.freeze_transformer()
     def freeze_transformer(self):
         for param in self.transformer.parameters():
@@ -42,7 +39,7 @@ class StanceClassifier(nn.Module):
         pooled_output = outputs.last_hidden_state[:, 0]
         
         if torch.isnan(pooled_output).any() or torch.isinf(pooled_output).any():
-            print("⚠️ Transformer 輸出包含 NaN/Inf")
+            print("WARNING: Transformer output NaN/Inf")
             pooled_output = torch.where(torch.isnan(pooled_output) | torch.isinf(pooled_output), 
                                       torch.zeros_like(pooled_output), pooled_output)
         
@@ -164,6 +161,7 @@ def createDataset(db_path):
     df['label'] = df['label']-1
     df = df[df['label'].isin([0, 1, 2])]
     min_label_count = df['label'].value_counts().min()
+    print(f"各標籤數量：\n{df['label'].value_counts()}")
     df = df.groupby('label').sample(n=min_label_count, random_state=42)
     conn.close()
     return df[['title', 'label']]
@@ -171,11 +169,6 @@ def createDataset(db_path):
 if __name__ == "__main__":
     df = createDataset('title.db')
     print(f"Device: {device}")
-
-    all_lengths = [len(tokenizer(str(text), truncation=False)['input_ids']) for text in df['title']]
-    print(f"最大長度: {max(all_lengths)}")
-    print(f"95% 標題長度: {sorted(all_lengths)[int(0.95*len(all_lengths))]}")
-    print(f"超過64的比例: {sum(l>64 for l in all_lengths)/len(all_lengths):.2%}")
     
     print(df.head())
     df_shuffled = df.sample(frac=1, random_state=42).reset_index(drop=True)
@@ -200,7 +193,7 @@ if __name__ == "__main__":
 
     model.freeze_transformer()
 
-    num_epochs = 15
+    num_epochs = 10
     optimizer = AdamW([
         {'params': model.classifier.parameters(), 'lr': 1e-5},
         {'params': model.layer_norm.parameters(), 'lr': 1e-5},

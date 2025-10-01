@@ -133,9 +133,9 @@ def ctiKmtCrawler(url):
 
 def concurrentCtiKmtCrawler():
     initDB()
-    CtUrls = [f"https://ctinews.com/tags/國民黨?page={page}" for page in range(1, 21)]
+    CtUrls = [f"https://ctinews.com/tags/國民黨?page={page}" for page in range(1, 100)]
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
         future_to_url = {executor.submit(ctiKmtCrawler, url): url for url in CtUrls}
         for future in concurrent.futures.as_completed(future_to_url):
             url = future_to_url[future]
@@ -178,7 +178,7 @@ def concurrentChinatimesCrawler():
     initDB()
     CtUrls = [f"https://www.chinatimes.com/politic/total?page={page}&chdtv" for page in range(1, 11)]
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
         future_to_url = {executor.submit(chinatimesCrawler, url): url for url in CtUrls}
         for future in concurrent.futures.as_completed(future_to_url):
             url = future_to_url[future]
@@ -220,9 +220,9 @@ def theNewsLensCrawler(url):
 
 def concurrentTNLCrawler():
     initDB()
-    TNLUrls = [f"https://www.thenewslens.com/category/politics/page{page}" for page in range(2, 100)]
+    TNLUrls = [f"https://www.thenewslens.com/category/politics/page{page}" for page in range(1, 600)]
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
         future_to_url = {executor.submit(theNewsLensCrawler, url): url for url in TNLUrls}
         for future in concurrent.futures.as_completed(future_to_url):
             url = future_to_url[future]
@@ -233,6 +233,46 @@ def concurrentTNLCrawler():
                         addArticleUrl(href, title)
             except Exception as e:
                 print(f"Error crawling {url}: {e}")
+
+
+def setncrawler(max_scrolls=1200, pause_time=1.2):
+    driver = get_driver()
+    driver.get("https://www.setn.com/ViewAll.aspx?PageGroupID=6")
+    last_height = driver.execute_script("return document.body.scrollHeight")
+    for _ in range(max_scrolls):
+        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+        time.sleep(pause_time)
+        new_height = driver.execute_script("return document.body.scrollHeight")
+        if new_height == last_height:
+            break
+        last_height = new_height
+    html = driver.page_source
+    soup = BeautifulSoup(html, 'html.parser')
+    for h3 in soup.find_all('h3', class_="view-li-title"):
+        for a in h3.find_all('a', href=True, class_="gt"):
+            href = a['href']
+            title = a.get_text(strip=True)
+            href = 'https://www.setn.com' + href
+            addArticleUrl(href, title)
+
+def ltnCrawler(max_scrolls=1200, pause_time=1.2):
+    driver = get_driver()
+    driver.get("https://news.ltn.com.tw/list/breakingnews/politics")
+    last_height = driver.execute_script("return document.body.scrollHeight")
+    for _ in range(max_scrolls):
+        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+        time.sleep(pause_time)
+        new_height = driver.execute_script("return document.body.scrollHeight")
+        if new_height == last_height:
+            break
+        last_height = new_height
+    html = driver.page_source
+    soup = BeautifulSoup(html, 'html.parser')
+    for a in soup.find_all('a',href=True):
+        href = a['href']
+        title = a.get_text(strip=True)
+        if href.startswith('https://news.ltn.com.tw/news/politics/'):
+            addArticleUrl(href, title)
 
 def cleanDB():
     initDB()
@@ -262,6 +302,8 @@ if __name__ == "__main__":
         concurrentCtiKmtCrawler()
         concurrentChinatimesCrawler()
         concurrentTNLCrawler()
+        setncrawler()
+        ltnCrawler()
         cleanDB()
     except KeyboardInterrupt:
         print("\nInterrupted by user")
