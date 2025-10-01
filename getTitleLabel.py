@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 import sqlite3
 import json
 import tqdm
+import pandas as pd
 
 load_dotenv()
 
@@ -224,3 +225,11 @@ def labelArticles():
 if __name__ == "__main__":
     labelArticles()
     labelArticles()
+    conn = sqlite3.connect('title.db')
+    df = pd.read_sql_query("SELECT title, label FROM titles", conn)
+    df = df.dropna(subset=['title', 'label'])
+    df = df[df['title'].str.len() > 0]
+    df['label'] = df['label']-1
+    df = df[df['label'].isin([0, 1, 2])]
+    min_label_count = df['label'].value_counts().min()
+    print(f"各標籤數量：\n{df['label'].value_counts()}")

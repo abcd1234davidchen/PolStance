@@ -220,7 +220,7 @@ def theNewsLensCrawler(url):
 
 def concurrentTNLCrawler():
     initDB()
-    TNLUrls = [f"https://www.thenewslens.com/category/politics/page{page}" for page in range(1, 600)]
+    TNLUrls = [f"https://www.thenewslens.com/category/politics/page{page}" for page in range(1, 700)]
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
         future_to_url = {executor.submit(theNewsLensCrawler, url): url for url in TNLUrls}
