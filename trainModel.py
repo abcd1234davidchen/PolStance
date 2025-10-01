@@ -16,9 +16,16 @@ class StanceClassifier(nn.Module):
         self.transformer = transformer_model
         self.dropout = nn.Dropout(dropout_rate)
         self.layer_norm = nn.LayerNorm(transformer_model.config.hidden_size)
-        self.classifier = nn.Linear(transformer_model.config.hidden_size, num_classes)
-        torch.nn.init.normal_(self.classifier.weight, std=0.01)
-        torch.nn.init.zeros_(self.classifier.bias)
+        self.classifier = nn.Sequential(
+            nn.Dropout(dropout_rate),
+            nn.Linear(transformer_model.config.hidden_size, transformer_model.config.hidden_size//2),
+            nn.ReLU(),
+            nn.Dropout(dropout_rate),
+            nn.Linear(transformer_model.config.hidden_size//2, num_classes)
+        )
+        #nn.Linear(transformer_model.config.hidden_size, num_classes)
+        #torch.nn.init.normal_(self.classifier.weight, std=0.01)
+        #torch.nn.init.zeros_(self.classifier.bias)
         self.freeze_transformer()
     def freeze_transformer(self):
         for param in self.transformer.parameters():
@@ -40,8 +47,7 @@ class StanceClassifier(nn.Module):
                                       torch.zeros_like(pooled_output), pooled_output)
         
         pooled_output = self.layer_norm(pooled_output)
-        dropped_out = self.dropout(pooled_output)
-        logits = self.classifier(dropped_out)
+        logits = self.classifier(pooled_output)
         return logits
 
 class StanceDataset(Dataset):
