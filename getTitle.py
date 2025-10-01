@@ -104,6 +104,49 @@ def addArticleUrl(url,title,max_retries=3):
             print(f"Unexpected error on attempt {attempt + 1}: {e}")
     return False
 
+def ctiKmtCrawler(url):
+    driver = get_driver()
+    articleUrls = []
+    try:
+        driver.get(url)
+        try:
+            WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, "h3.title, article, .article-item"))
+            )
+        except:
+            time.sleep(3)
+        html = driver.page_source
+        soup = BeautifulSoup(html, 'html.parser')
+
+        for section in soup.find_all('h2'):
+            a_tag = section.find('a', href=True)
+            if a_tag:
+                href = a_tag['href']
+                title = a_tag.get_text(strip=True)
+                if href.startswith('/news/items'):
+                    href = 'https://ctinews.com' + href
+                    articleUrls.append((href, title))
+        return articleUrls
+    except Exception as e:
+        print(f"Error crawling {url}: {e}")
+        return []
+
+def concurrentCtiKmtCrawler():
+    initDB()
+    CtUrls = [f"https://ctinews.com/tags/國民黨?page={page}" for page in range(1, 21)]
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+        future_to_url = {executor.submit(ctiKmtCrawler, url): url for url in CtUrls}
+        for future in concurrent.futures.as_completed(future_to_url):
+            url = future_to_url[future]
+            try:
+                article_list = future.result()
+                if article_list:
+                    for href, title in article_list:
+                        addArticleUrl(href, title)
+            except Exception as e:
+                print(f"Error crawling {url}: {e}")
+
 def chinatimesCrawler(url):
     driver = get_driver()
     articleUrls = []
@@ -216,6 +259,7 @@ signal.signal(signal.SIGTERM, signal_handler)
 
 if __name__ == "__main__":
     try:
+        concurrentCtiKmtCrawler()
         concurrentChinatimesCrawler()
         concurrentTNLCrawler()
         cleanDB()

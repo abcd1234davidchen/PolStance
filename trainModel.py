@@ -11,7 +11,7 @@ import sqlite3
 from tqdm import tqdm
 
 class StanceClassifier(nn.Module):
-    def __init__(self,transformer_model, num_classes, dropout_rate=0.3):
+    def __init__(self,transformer_model, num_classes, dropout_rate=0.6):
         super(StanceClassifier, self).__init__()
         self.transformer = transformer_model
         self.dropout = nn.Dropout(dropout_rate)
@@ -32,7 +32,6 @@ class StanceClassifier(nn.Module):
                 outputs = self.transformer(input_ids=input_ids, attention_mask=attention_mask)
         else:
             outputs = self.transformer(input_ids=input_ids, attention_mask=attention_mask)
-        
         pooled_output = outputs.last_hidden_state[:, 0]
         
         if torch.isnan(pooled_output).any() or torch.isinf(pooled_output).any():
@@ -41,16 +40,12 @@ class StanceClassifier(nn.Module):
                                       torch.zeros_like(pooled_output), pooled_output)
         
         pooled_output = self.layer_norm(pooled_output)
-        # pooled_output = torch.clamp(pooled_output, min=-5, max=5)
-        
         dropped_out = self.dropout(pooled_output)
         logits = self.classifier(dropped_out)
-        # logits = torch.clamp(logits, min=-5, max=5)
-        
         return logits
 
 class StanceDataset(Dataset):
-    def __init__(self, texts, labels, tokenizer, max_length=128):
+    def __init__(self, texts, labels, tokenizer, max_length=64):
         self.texts = texts
         self.labels = labels
         self.tokenizer = tokenizer
@@ -97,20 +92,19 @@ def train_step(model, batch, optimizer, criterion, device):
     logits = model(inputs, attention_mask)
 
     if torch.isnan(logits).any() or torch.isinf(logits).any():
-        print("⚠️ logits 包含 NaN/Inf，跳過此 batch")
+        print("WARNING: `logits include NaN/Inf")
         return {'loss': 0.0, 'accuracy': 0.0}
-
     loss = criterion(logits, labels)
 
     if torch.isnan(loss) or torch.isinf(loss):
-        print(f"⚠️ loss 是 NaN/Inf: {loss.item()}，跳過此 batch")
+        print(f"WARNING: `loss is NaN/Inf: {loss.item()}，跳過此 batch")
         return {'loss': 0.0, 'accuracy': 0.0}
 
     loss.backward()
     
     total_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=0.5)
     if torch.isnan(total_norm):
-        print("⚠️ 梯度包含 NaN，跳過此 batch")
+        print("WARNING: `total_norm is NaN，跳過此 batch")
         optimizer.zero_grad()
         return {'loss': 0.0, 'accuracy': 0.0}
 
@@ -133,20 +127,14 @@ def evaluate(model, data_loader, criterion, device):
             inputs = batch['input_ids'].to(device)
             attention_mask = batch['attention_mask'].to(device)
             labels = batch['labels'].to(device)
-
             if torch.isnan(inputs).any() or torch.isnan(attention_mask).any():
                 continue
-
             logits = model(inputs, attention_mask)
-
             if torch.isnan(logits).any() or torch.isinf(logits).any():
                 continue
-
             loss = criterion(logits, labels)
-
             if torch.isnan(loss) or torch.isinf(loss):
                 continue
-
             predictions = torch.argmax(logits, dim=1)
             correct = (predictions == labels).float().sum()
 
@@ -165,20 +153,23 @@ def evaluate(model, data_loader, criterion, device):
 def createDataset(db_path):
     conn = sqlite3.connect(db_path)
     df = pd.read_sql_query("SELECT title, label FROM titles", conn)
-
-    print("檢查標籤分布:")
-    print(df['label'].value_counts(normalize=True))
-
     df = df.dropna(subset=['title', 'label'])
     df = df[df['title'].str.len() > 0]
     df['label'] = df['label']-1
-
+    df = df[df['label'].isin([0, 1, 2])]
+    min_label_count = df['label'].value_counts().min()
+    df = df.groupby('label').sample(n=min_label_count, random_state=42)
     conn.close()
     return df[['title', 'label']]
 
 if __name__ == "__main__":
     df = createDataset('title.db')
     print(f"Device: {device}")
+
+    all_lengths = [len(tokenizer(str(text), truncation=False)['input_ids']) for text in df['title']]
+    print(f"最大長度: {max(all_lengths)}")
+    print(f"95% 標題長度: {sorted(all_lengths)[int(0.95*len(all_lengths))]}")
+    print(f"超過64的比例: {sum(l>64 for l in all_lengths)/len(all_lengths):.2%}")
     
     print(df.head())
     df_shuffled = df.sample(frac=1, random_state=42).reset_index(drop=True)
@@ -190,29 +181,29 @@ if __name__ == "__main__":
         texts=train_df['title'].tolist(),
         labels=train_df['label'].tolist(),
         tokenizer=tokenizer,
-        max_length=128
+        max_length=64
     )
     val_dataset = StanceDataset(
         texts=val_df['title'].tolist(),
         labels=val_df['label'].tolist(),
         tokenizer=tokenizer,
-        max_length=128
+        max_length=64
     )
-    train_loader = DataLoader(train_dataset, batch_size=8, shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size=8, shuffle=False)
+    train_loader = DataLoader(train_dataset, batch_size=16, shuffle=True)
+    val_loader = DataLoader(val_dataset, batch_size=16, shuffle=False)
 
     model.freeze_transformer()
 
-    num_epochs = 8
+    num_epochs = 15
     optimizer = AdamW([
-        {'params': model.classifier.parameters(), 'lr': 1e-5},  # 進一步降低
+        {'params': model.classifier.parameters(), 'lr': 1e-5},
         {'params': model.layer_norm.parameters(), 'lr': 1e-5},
         {'params': model.dropout.parameters(), 'lr': 1e-5}
-    ], weight_decay=5e-4)
+    ], weight_decay=1e-4)
     criterion = nn.CrossEntropyLoss()
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=2, factor=0.5)
     for epoch in range(num_epochs):
-        if epoch == 2:
+        if epoch == 6:
             print("Unfreezing transformer for fine-tuning...")
             model.unfreeze_transformer()
             optimizer.add_param_group({'params': model.transformer.parameters(), 'lr': 2e-6})
@@ -226,12 +217,8 @@ if __name__ == "__main__":
                 epoch_train_loss += train_metrics['loss']
                 epoch_train_accuracy += train_metrics['accuracy']
                 valid_batches += 1
-                
-                if valid_batches % 10 == 0:
-                    avg_loss = epoch_train_loss / valid_batches
-                    avg_acc = epoch_train_accuracy / valid_batches
-                    print(f"  Valid batches: {valid_batches}, Avg Loss: {avg_loss:.4f}, Avg Acc: {avg_acc:.4f}")
-        
+            if valid_batches % 30 == 0:
+                print(f"  Valid batches: {valid_batches}, Avg Loss: {epoch_train_loss/valid_batches:.4f}, Avg Acc: {epoch_train_accuracy/valid_batches:.4f}")
         print("Evaluating on validation set...")
         val_metrics = evaluate(model, val_loader, criterion, device)
 

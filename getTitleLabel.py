@@ -60,8 +60,7 @@ def generateStance(articleText):
         ),
         system_instruction=[
             types.Part.from_text(text="""你是一個政治立場分析專家，請根據使用者提供的多個標題，分析每個標題的政治立場傾向，並以JSON格式回覆
-若傾向國民黨則標示為\"1\"，若傾向民進黨則標示為\"2\"
-若為中立則標示為\"3\"
+若傾向國民黨則標示為\"1\"，若傾向民進黨則標示為\"2\"，若為中立則標示為\"3\"
 文章只能有一個傾向。"""),
         ],
     )
@@ -102,7 +101,8 @@ def readDB():
     conn.close()
     return rows
 
-def updateArticleLabels(article_ida, article_idb, article_idc, article_idd, article_ide, article_idf, article_idg, article_idh, labels):
+def updateArticleLabels(article_ida, article_idb, article_idc, article_idd,
+                         article_ide, article_idf, article_idg, article_idh, labels):
     conn = sqlite3.connect('title.db')
     cursor = conn.cursor()
     cursor.execute('''
@@ -161,17 +161,20 @@ def labelArticles():
         article_idg, _, textg = rows[i+6] if i+6 < len(rows) else (article_ida, _, texta)
         article_idh, _, texth = rows[i+7] if i+7 < len(rows) else (article_ida, _, texta)
 
-        combined_text = f"a. {texta}\nb. {textb}\nc. {textc}\nd. {textd}\ne. {texte}\nf. {textf}\ng. {textg}\nh. {texth}"
+        combined_text = (f"a. {texta}\nb. {textb}\nc. {textc}\nd. {textd}\n"
+                         f"e. {texte}\nf. {textf}\ng. {textg}\nh. {texth}")
         batch_num = (i // 8) + 1
         pbar.set_description(f"Labeling Batch {batch_num} ID: {article_ida}~{article_idh}")
         try:
             labels = generateStance(combined_text)
             if labels and isinstance(labels, dict):
-                updateArticleLabels(article_ida, article_idb, article_idc, article_idd, article_ide, article_idf, article_idg, article_idh, labels)
+                updateArticleLabels(article_ida, article_idb, article_idc, article_idd,
+                                     article_ide, article_idf, article_idg, article_idh, labels)
             else:
                 tqdm.tqdm.write(f"No labels generated for article ID {article_ida}")
         except Exception as e:
             print(f"Error processing article: {e}")
 
 if __name__ == "__main__":
+    labelArticles()
     labelArticles()
