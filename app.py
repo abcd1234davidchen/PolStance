@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 from transformers import AutoTokenizer, AutoModel
 import gradio as gr
+import re
 
 class StanceClassifier(nn.Module):
     def __init__(self,transformer_model, num_classes, dropout_rate=0.6):
@@ -47,14 +48,19 @@ def predict_stance(text):
     return labels[predicted_class], confidence
 
 def gradio_interface(text):
-    stance, conf = predict_stance(text)
-    return f"Predicted Stance: {stance} with confidence {conf:.4f}"
+    sentences = re.split(r"[。！？\n]", text)
+    sentences = [s for s in sentences if s.strip()]
+    results = []
+    for s in sentences:
+        stance, conf = predict_stance(s)
+        results.append((s + f" (Confidence: {conf:.4f})", stance))
+    return results
 
 def ui():
     gr.Interface(
         fn=gradio_interface,
         inputs=gr.Textbox(label="Input Text", placeholder="Enter text to predict political stance..."),
-        outputs=gr.Textbox(label="Prediction Result"),
+        outputs=gr.HighlightedText(label="Prediction Result",color_map={"KMT":"blue","DPP":"green","Neutral":"purple"}),
         title="Political Stance Prediction",
         description="Enter a text to predict its political stance (KMT, DPP, Neutral)."
     ).launch()
