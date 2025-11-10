@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "beautifulsoup4>=4.14.2",
+    "dataset>=1.6.2",
     "google-genai>=1.39.1",
     "gradio>=5.47.2",
     "load-dotenv>=0.1.0",
