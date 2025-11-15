@@ -153,13 +153,12 @@ def addTitleUrl(url,title,max_retries=3):
     
 def concurrentTitleCrawler(bound=[1,80,1,80,2,600,1,11,1,500,1,500]):
     initDB()
-    CtiKmtUrls = [f"https://ctinews.com/tags/國民黨?page={page}" for
-                   page in range(bound[0], bound[1])]
-    CtiDppUrls = [f"https://ctinews.com/tags/民進黨?page={page}" for page in range(bound[2], bound[3])]
-    TnlUrls = [f"https://www.thenewslens.com/category/politics/page{page}" for page in range(bound[4], bound[5])]
-    CtUrls = [f"https://www.chinatimes.com/politic/total?page={page}&chdtv" for page in range(bound[6], bound[7])]
-    ltnKmtUrls = [f"https://search.ltn.com.tw/list?keyword=國民黨&page={page}" for page in range(bound[8], bound[9])]
-    ltnDppUrls = [f"https://search.ltn.com.tw/list?keyword=民進黨&page={page}" for page in range(bound[10], bound[11])]
+    CtiKmtUrls = [f"https://ctinews.com/tags/國民黨?page={page}" for page in range(bound[0], bound[1]) if bound[0]!=0]
+    CtiDppUrls = [f"https://ctinews.com/tags/民進黨?page={page}" for page in range(bound[2], bound[3]) if bound[2]!=0]
+    TnlUrls = [f"https://www.thenewslens.com/category/politics/page{page}" for page in range(bound[4], bound[5]) if bound[4]!=0]
+    CtUrls = [f"https://www.chinatimes.com/politic/total?page={page}&chdtv" for page in range(bound[6], bound[7]) if bound[6]!=0]
+    ltnKmtUrls = [f"https://search.ltn.com.tw/list?keyword=國民黨&page={page}" for page in range(bound[8], bound[9]) if bound[8]!=0]
+    ltnDppUrls = [f"https://search.ltn.com.tw/list?keyword=民進黨&page={page}" for page in range(bound[10], bound[11]) if bound[10]!=0]
     urlFullList = CtiKmtUrls+CtiDppUrls+TnlUrls+CtUrls+ltnKmtUrls+ltnDppUrls
     with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
         future_to_url = {executor.submit(pageCrawler, url): url for url in urlFullList}
@@ -255,10 +254,13 @@ if __name__ == "__main__":
     signal.signal(signal.SIGTERM, signal_handler)
     try:
         # Daily crawl
-        # concurrentTitleCrawler([1,2,1,2,2,3,1,7,1,5,1,5])
-        # setnPageHandler(max_scrolls=2, pause_time=1.0)
-        concurrentTitleCrawler()
+        concurrentTitleCrawler([1,2,1,2,2,3,1,7,1,5,1,5])
+        setnPageHandler(max_scrolls=2, pause_time=1.0)
+
+        # Full crawl
+        # concurrentTitleCrawler()
         # setnPageHandler()
+        
         concurrentArticleCrawler()
         cleanDB()
     except KeyboardInterrupt:
