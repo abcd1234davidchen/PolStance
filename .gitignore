@@ -12,6 +12,7 @@ wheels/
 
 # Environment variables
 .env
+envstore
 
 # article text files
 articles.json
