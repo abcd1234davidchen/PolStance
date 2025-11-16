@@ -22,4 +22,4 @@ articles.json
 # Model files
 *.pth
 
-test
+test.ipynb
