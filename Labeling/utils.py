@@ -2,7 +2,7 @@ from dotenv import load_dotenv
 import json
 import random
 import requests
-import os
+import subprocess
 class LabelingClass:
     model_id: str | None = None
     ENDPOINT: str | None = None
@@ -50,9 +50,10 @@ class LabelingClass:
         }
             
     def _requests_structure(self, config): 
+        token = subprocess.check_output(["gcloud", "auth", "print-access-token"]).decode().strip()
         return {
             "headers":{
-                "Authorization": f"Bearer {os.getenv("GCLOUD_KEY")}", 
+                "Authorization": f"Bearer {token}", 
                 "Content-Type": "application/json; charset=utf-8"
                 },
             "data":json.dumps(config)
@@ -90,9 +91,19 @@ class LabelingClass:
         attempt = 0
         while attempt < self.MAX_ATTEMPTS:
             response = requests.post(url=self._request_url(),**(self._requests_structure(req_config)))
-            with open(f"tmp/{"".join(str(self.model_id).replace("/","-").split('-')[1:4])}_debug.json", "w") as f:
-                json.dump(str(response.text), fp=f, indent=4)
-            structured_response = self._parse_response(str(response.text))
+            if response.status_code != 200:
+                attempt+=1
+                print(f"request failed, retrying.... Error:{response.text}")
+                continue
+            else:
+                # First, parse the JSON text from the response
+                response_data = response.json()
+                # The raw text is still needed for the original parsing logic
+                response_text = response.text
+
+            with open(f"tmp/{"".join(str(self.model_id).replace("/","-").split('-')[1:4])}_debug.json", "w", encoding="utf-8") as f:
+                json.dump(response_data, f, ensure_ascii=False, indent=2)
+            structured_response = self._parse_response(response_text)
             if((structured_response is not None ) and True):
                 #(self._verify_response(structured_response))):
                 return structured_response
