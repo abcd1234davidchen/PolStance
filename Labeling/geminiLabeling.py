@@ -2,7 +2,7 @@ from mainClass import LabelingClass
 import os
 import json
 import requests
-
+import traceback
 
 class GeminiLabeling(LabelingClass):
     def __init__(self):
@@ -27,7 +27,7 @@ class GeminiLabeling(LabelingClass):
             "headers": {"Content-Type": "application/json; charset=utf-8"},
             "data": json.dumps(config),
         }
-
+        
     def _send_request(self, prompt: list[dict[str, str]]):
         req_config = self._request_config(self.model_id, prompt)
 
@@ -46,14 +46,22 @@ class GeminiLabeling(LabelingClass):
                 "w",
             ) as f:
                 f.write(str(response))
-            structured_response = self._parse_response(str(response))
-            if (structured_response is not None) and (self._verify_response(structured_response)):
+            res = self._get_response_text(json.loads(response))
+            structured_response = self._parse_response(str(res))
+            if (structured_response is not None):
                 return structured_response
 
             attempt += 1
         raise ValueError("Failed to get a valid response after maximum attempts")
-
-
+    
+    def _get_response_text(self, response: dict) -> str:
+        try:
+            res = response["candidates"][0]["content"]["parts"][0]["text"]
+        except (KeyError, IndexError):
+            res = ""
+            print(f"Warning: Unexpected response structure {traceback.format_exc()}")
+        return res
+    
 if __name__ == "__main__":
     client = GeminiLabeling()
     client.labeling("台灣在哪裡？")

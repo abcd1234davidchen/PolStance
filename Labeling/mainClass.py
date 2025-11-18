@@ -3,7 +3,7 @@ import json
 import random
 import requests
 import subprocess
-
+from typing import Any
 
 class LabelingClass:
     model_id: str | None = None
@@ -27,16 +27,16 @@ class LabelingClass:
 {str(return_structure)}
 """
 
-    def __init__(self):
+    def __init__(self) -> None:
         load_dotenv()
 
-    def _msg_template(self, prompt):
+    def _msg_template(self, prompt) -> list[Any]:
         return [
             {"role": "system", "content": self.instruction},
             {"role": "user", "content": prompt},
         ]
 
-    def _request_config(self, model, msg):
+    def _request_config(self, model, msg) -> dict[str, Any]:
         return {
             "model": model,
             "stream": False,
@@ -48,7 +48,7 @@ class LabelingClass:
             "max_output_tokens": 1024,
         }
 
-    def _requests_structure(self, config):
+    def _requests_structure(self, config) -> dict[str, Any]:
         token = (
             subprocess.check_output(["gcloud", "auth", "print-access-token"])
             .decode()
@@ -65,19 +65,17 @@ class LabelingClass:
     def _request_url(self):
         return f"https://{self.ENDPOINT}/v1/projects/{self.PROJECT_ID}/locations/{self.REGION}/endpoints/openapi/chat/completions"
 
+    def _get_response_text(self, response: dict) -> str:
+        return response["candidates"][0]["content"]["parts"][0]["text"]
+    
     def _parse_response(self, response: str) -> dict[str, int] | None:
         for replacement in ["`", " ", "\n", "json"]:
             response = response.replace(replacement, "")
         try:
             return json.loads(response)
         except json.JSONDecodeError as e:
+            print(f"JSON decode error: {e}")
             return None
-
-    def _verify_response(self, response: dict) -> bool:
-        for key, value in self.return_structure_type.items():
-            if key not in response:
-                return False
-        return True
 
     def labeling(self, prompt: str) -> dict[str, int]:
         if hasattr(self, "_send_request"):
@@ -100,8 +98,7 @@ class LabelingClass:
                 continue
             else:
                 response_data = response.json()
-                response_text = response.text
-            print(response_text)
+                
             with open(
                 f"tmp/{''.join(str(self.model_id).replace('/', '-').split('-')[1:4])}_debug.json",
                 "w",
@@ -109,17 +106,10 @@ class LabelingClass:
             ) as f:
                 json.dump(response_data, f, ensure_ascii=False, indent=2)
 
-            # 從 API 回應中正確提取模型生成的內容
-            model_content = (
-                response_data.get("choices", [{}])[0].get("message", {}).get("content")
-            )
-
+            model_content = self._get_response_text(response_data)
             structured_response = self._parse_response(model_content)
-            if structured_response is not None and self._verify_response(
-                structured_response
-            ):
+            if structured_response is not None:
                 return structured_response
             else:
-                #print(response_text)
                 attempt += 1
-        raise ValueError("Failed to get a valid response after maximum attempts")
+        raise ValueError(f"Failed to get a valid response after maximum attempts")

@@ -1,5 +1,5 @@
 from mainClass import LabelingClass
-
+import traceback
 
 class LlamaLabeling(LabelingClass):
     def __init__(self):
@@ -8,6 +8,14 @@ class LlamaLabeling(LabelingClass):
         self.REGION = "us-east5"
         self.ENDPOINT = f"us-east5-aiplatform.googleapis.com"
 
+    def _get_response_text(self, response: dict) -> str:
+        try:
+            res = response["choices"][0]["message"]["content"]
+            res = res.replace("```json", "").replace("```", "").replace("\"", "\"")
+        except (KeyError, IndexError):
+            res = ""
+            print(f"Warning: Unexpected response structure. {traceback.format_exc()}")
+        return res
 
 if __name__ == "__main__":
     client = LlamaLabeling()
