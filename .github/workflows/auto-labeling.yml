@@ -1,0 +1,43 @@
+name: Auto Labeling Worker
+
+on:
+  workflow_dispatch:
+
+jobs:
+  labeling:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Install uv
+      uses: astral-sh/setup-uv@v3
+      with:
+        enable-cache: true
+        
+    - name: Install dependencies
+      run: uv sync
+
+    - name: Authenticate to Google Cloud
+      uses: google-github-actions/auth@v1
+      with:
+        credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+    - name: Set up gcloud CLI
+      uses: google-github-actions/setup-gcloud@v1
+      with:
+        project_id: ${{ secrets.GCP_PROJECT }}
+        version: 'latest'
+
+    - name: Get gcloud access token
+      id: get-token
+      run: echo "access_token=$(gcloud auth print-access-token)" >> $GITHUB_OUTPUT
+    
+    - name: Run auto labeling
+      env:
+        DATASET_KEY: ${{ secrets.DATASET_KEY }}
+        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+
+      run: |
+        uv run Labeling/autoLabelingWorker.py
