@@ -5,6 +5,7 @@ import requests
 import subprocess
 from typing import Any
 
+
 class LabelingClass:
     model_id: str | None = None
     ENDPOINT: str | None = None
@@ -67,7 +68,7 @@ class LabelingClass:
 
     def _get_response_text(self, response: dict) -> str:
         return response["candidates"][0]["content"]["parts"][0]["text"]
-    
+
     def _parse_response(self, response: str) -> dict[str, int] | None:
         for replacement in ["`", " ", "\n", "json"]:
             response = response.replace(replacement, "")
@@ -94,11 +95,11 @@ class LabelingClass:
             )
             if response.status_code != 200:
                 attempt += 1
-                #print(f"request failed, retrying.... Error:{response.text}")
+                # print(f"request failed, retrying.... Error:{response.text}")
                 continue
             else:
                 response_data = response.json()
-                
+
             with open(
                 f"tmp/{''.join(str(self.model_id).replace('/', '-').split('-')[1:4])}_debug.json",
                 "w",

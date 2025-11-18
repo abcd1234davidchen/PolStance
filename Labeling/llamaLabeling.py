@@ -1,6 +1,7 @@
 from mainClass import LabelingClass
 import traceback
 
+
 class LlamaLabeling(LabelingClass):
     def __init__(self):
         super().__init__()
@@ -11,11 +12,12 @@ class LlamaLabeling(LabelingClass):
     def _get_response_text(self, response: dict) -> str:
         try:
             res = response["choices"][0]["message"]["content"]
-            res = res.replace("```json", "").replace("```", "").replace("\"", "\"")
+            res = res.replace("```json", "").replace("```", "").replace('"', '"')
         except (KeyError, IndexError):
             res = ""
             print(f"Warning: Unexpected response structure. {traceback.format_exc()}")
         return res
+
 
 if __name__ == "__main__":
     client = LlamaLabeling()

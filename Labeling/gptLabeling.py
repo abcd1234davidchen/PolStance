@@ -1,6 +1,7 @@
 from mainClass import LabelingClass
 import traceback
 
+
 class GptLabeling(LabelingClass):
     def __init__(self):
         super().__init__()
@@ -15,7 +16,8 @@ class GptLabeling(LabelingClass):
             res = ""
             print(f"Warning: Unexpected response structure. {traceback.format_exc()}")
         return res
-    
+
+
 if __name__ == "__main__":
     client = GptLabeling()
     client.labeling("台灣在哪裡？")
