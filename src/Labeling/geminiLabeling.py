@@ -8,7 +8,7 @@ from pathlib import Path
 class GeminiLabeling(LabelingClass):
     def __init__(self):
         super().__init__()
-        self.model_id = "gemini-flash-lite-latest"
+        self.model_id = "gemini-flash-latest"
 
     def _request_url(self):
         return f"https://generativelanguage.googleapis.com/v1beta/models/{self.model_id}:generateContent?key={os.getenv('GEMINI_API_KEY')}"
