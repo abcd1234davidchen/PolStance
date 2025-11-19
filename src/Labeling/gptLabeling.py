@@ -17,6 +17,9 @@ class GptLabeling(LabelingClass):
             print(f"Warning: Unexpected response structure. {traceback.format_exc()}")
         return res
 
+    def _request_url(self):
+        return f"https://{self.ENDPOINT}/v1beta/projects/{self.PROJECT_ID}/locations/{self.REGION}/endpoints/openapi/chat/completions"
+
 
 if __name__ == "__main__":
     client = GptLabeling()
