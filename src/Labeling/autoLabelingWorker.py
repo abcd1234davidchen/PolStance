@@ -8,6 +8,7 @@ from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeou
 from functools import partial
 import signal
 import sys
+import time 
 from Labeling.geminiLabeling import GeminiLabeling
 from Labeling.gptLabeling import GptLabeling
 from Labeling.llamaLabeling import LlamaLabeling
@@ -99,7 +100,7 @@ def labelArticles():
                     
                 except Exception as e:
                     print(f"{name} setup error: {e}: {traceback.format_exc()}")
-            
+                time.sleep(1) 
         except Exception as e:
             print(f"Error processing article: {e}: {traceback.format_exc()}")
 
@@ -124,14 +125,14 @@ if __name__ == "__main__":
         except Exception:
             pass
 
-        # try:
-        #     if "_hf" in globals() and _hf is not None:
-        #         try:
-        #             _hf.upload_db("Shutdown at " + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
-        #         except Exception as e:
-        #             print(f"Error uploading DB on shutdown: {e}")
-        # except Exception:
-        #     pass
+        try:
+            if "_hf" in globals() and _hf is not None:
+                try:
+                    _hf.upload_db("Shutdown at " + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+                except Exception as e:
+                    print(f"Error uploading DB on shutdown: {e}")
+        except Exception:
+            pass
 
         try:
             if "_db" in globals() and _db is not None:
