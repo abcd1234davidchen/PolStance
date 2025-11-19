@@ -5,11 +5,16 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "beautifulsoup4>=4.14.2",
     "dataset>=1.6.2",
     "datasets>=4.4.1",
     "google-genai>=1.39.1",
+    "gradio>=5.47.2",
     "ipykernel>=7.1.0",
     "load-dotenv>=0.1.0",
     "pandas>=2.3.3",
+    "selenium>=4.35.0",
+    "torch>=2.8.0",
     "tqdm>=4.67.1",
+    "transformers[sentencepiece]>=4.56.2",
 ]
