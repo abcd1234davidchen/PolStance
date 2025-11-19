@@ -79,7 +79,6 @@ def labelArticles():
                 "gpt": agentprocess(combined_text, gptClient, pbar),
                 "llama": agentprocess(combined_text, llamaClient, pbar),
             }
-            input()
             print(f"Labeling Result: {labeling_result}")
             voted_labels = compare_labels(labeling_result)
             db.updateArticleLabels(row_data, labeling_result, voted_labels)

@@ -101,7 +101,7 @@ class LabelingClass:
                 response_data = response.json()
 
             with open(
-                f"tmp/{''.join(str(self.model_id).replace('/', '-').split('-')[1:4])}_debug.json",
+                f"tmp/{str(type(self))}_debug.json",
                 "w",
                 encoding="utf-8",
             ) as f:
