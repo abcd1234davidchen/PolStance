@@ -1,4 +1,4 @@
-from mainClass import LabelingClass
+from Labeling.mainClass import LabelingClass
 import traceback
 
 

@@ -4,7 +4,7 @@ import random
 import requests
 import subprocess
 from typing import Any
-
+from pathlib import Path
 
 class LabelingClass:
     model_id: str | None = None
@@ -22,7 +22,7 @@ class LabelingClass:
 若傾向國民黨則標示為\"1\"，若傾向民進黨則標示為\"2\"，若為中立則標示為\"3\"
 每篇文章只能有一個傾向，並且僅能夠從上述的三種種類中挑選。
 並嚴格遵照下列的結構輸出結果：
-{"\n".join([f"{key}:{value}" for key, value in return_structure_type.items()])}
+{str(return_structure_type)}
 
 舉例:
 {str(return_structure)}
@@ -75,7 +75,7 @@ class LabelingClass:
         try:
             return json.loads(response)
         except json.JSONDecodeError as e:
-            print(f"JSON decode error: {e}")
+            print(f"JSON decode error at {self.__class__.__name__}: {e}")
             return None
 
     def labeling(self, prompt: str) -> dict[str, int]:
@@ -84,6 +84,47 @@ class LabelingClass:
         else:
             raise NotImplementedError("_send_request method not implemented.")
         return structured_response
+
+    def labeling_and_write_db(self, db_manager, label_name: str, batch_size: int = 12) -> dict[str, int]:
+        """
+        Convenience method: read up to `batch_size` rows from `db_manager`, build the
+        combined prompt, call `labeling`, then write results back to DB using
+        `db_manager.updateArticleLabels`.
+
+        Returns the labeling result (dict) or empty dict on failure.
+        """
+        rows, columns = db_manager.readDB()
+        if not rows:
+            return {}
+
+        # Prepare row_data similar to how autoLabelingWorker used it: mapping offset->row
+        def get_row(idx):
+            return rows[idx] if idx < len(rows) else rows[0]
+
+        row_data = {}
+        for offset in range(0, batch_size):
+            row_data[offset] = get_row(offset)
+
+        # Build combined prompt using the 'title' column
+        try:
+            title_index = columns.index("title")
+        except ValueError:
+            title_index = 2
+
+        combined_text = "\n".join(
+            [f"{(chr(ord('a') + idx))}. {row[title_index]}" for idx, row in enumerate(row_data.values())]
+        )
+
+        try:
+            result = self.labeling(combined_text)
+            if result and isinstance(result, dict):
+                # Write labels back to DB
+                db_manager.updateArticleLabels(label_name, row_data, result)
+                return result
+        except Exception:
+            pass
+
+        return {}
 
     def _send_request(self, prompt: list[dict[str, str]]):
         req_config = self._request_config(self.model_id, prompt)
@@ -99,10 +140,10 @@ class LabelingClass:
                 continue
             else:
                 response_data = response.json()
-
+            
             with open(
-                f"tmp/{str(type(self))}_debug.json",
-                "w",
+                f"tmp/{str(self.__class__.__name__)}_debug.json",
+                "w+",
                 encoding="utf-8",
             ) as f:
                 json.dump(response_data, f, ensure_ascii=False, indent=2)

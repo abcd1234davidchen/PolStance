@@ -1,9 +1,9 @@
-from mainClass import LabelingClass
+from Labeling.mainClass import LabelingClass
 import os
 import json
 import requests
 import traceback
-
+from pathlib import Path
 
 class GeminiLabeling(LabelingClass):
     def __init__(self):
@@ -43,7 +43,7 @@ class GeminiLabeling(LabelingClass):
             else:
                 response = response.text
             with open(
-                f"tmp/{''.join(str(self.model_id).replace('/', '-').split('-')[1:4])}_debug.json",
+                f"tmp/{str(self.__class__.__name__)}_debug.json",
                 "w",
             ) as f:
                 f.write(str(response))
@@ -58,6 +58,7 @@ class GeminiLabeling(LabelingClass):
     def _get_response_text(self, response: dict) -> str:
         try:
             res = response["candidates"][0]["content"]["parts"][0]["text"]
+            res = res.replace("\'","\"")
         except (KeyError, IndexError):
             res = ""
             print(f"Warning: Unexpected response structure {traceback.format_exc()}")

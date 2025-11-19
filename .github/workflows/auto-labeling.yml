@@ -16,26 +16,12 @@ jobs:
 
       - name: Install uv
         uses: astral-sh/setup-uv@v3
-        with:
-          enable-cache: true
 
       - name: Set up Python
         run: uv python install 3.11
 
       - name: Install dependencies
         run: uv sync
-
-      # 檢查 secrets 是否存在（避免 credentials_json 為空）
-      - name: Validate GCP secrets
-        run: |
-          if [ -z "${{ secrets.GCP_SA_KEY }}" ]; then
-            echo "ERROR: GCP_SA_KEY is empty. Set repository secret GCP_SA_KEY with your service account JSON."
-            exit 1
-          fi
-          if [ -z "${{ secrets.GCP_PROJECT }}" ]; then
-            echo "ERROR: GCP_PROJECT is empty. Set repository secret GCP_PROJECT."
-            exit 1
-          fi
 
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v1
@@ -48,14 +34,9 @@ jobs:
           project_id: ${{ secrets.GCP_PROJECT }}
           version: "latest"
 
-      - name: Get gcloud access token
-        id: get-token
-        run: echo "access_token=$(gcloud auth print-access-token)" >> $GITHUB_OUTPUT
-
       - name: Run auto labeling
         env:
           DATASET_KEY: ${{ secrets.DATASET_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          GCLOUD_ACCESS_TOKEN: ${{ steps.get-token.outputs.access_token }}
         run: |
-          uv run Labeling/autoLabelingWorker.py
+          uv run src/Labeling/autoLabelingWorker.py
