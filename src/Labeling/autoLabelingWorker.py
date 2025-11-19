@@ -100,7 +100,7 @@ def labelArticles():
                     
                 except Exception as e:
                     print(f"{name} setup error: {e}: {traceback.format_exc()}")
-                time.sleep(1) 
+                time.sleep(2) 
         except Exception as e:
             print(f"Error processing article: {e}: {traceback.format_exc()}")
 
