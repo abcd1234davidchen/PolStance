@@ -1,7 +1,7 @@
 from huggingface_hub import hf_api, hf_hub_download
 import os
 from dotenv import load_dotenv
-from DBManager import DbManager
+from Labeling.utils.DBManager import DBManager
 
 load_dotenv()
 
@@ -15,7 +15,7 @@ class HFManager:
         self.db_path = None
         self.hf_api = hf_api.HfApi(token=self.token)
 
-    def download_db(self) -> DbManager:
+    def download_db(self) -> DBManager:
         sql_file = hf_hub_download(
             repo_id=self.repo_id,
             filename=self.filename,
@@ -23,7 +23,7 @@ class HFManager:
             token=self.token,
         )
         self.db_path = sql_file
-        self.db_manager = DbManager(sql_file)
+        self.db_manager = DBManager(sql_file)
         return self.db_manager
 
     def upload_db(self, commit_message="Update automatcally") -> None:

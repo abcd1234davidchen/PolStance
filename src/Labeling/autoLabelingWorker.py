@@ -1,10 +1,11 @@
 from dotenv import load_dotenv
 import tqdm
 
-from geminiLabeling import GeminiLabeling
-from gptLabeling import GptLabeling
-from llamaLabeling import LlamaLabeling
-from utils.HFManager import HFManager
+from Labeling.geminiLabeling import GeminiLabeling
+from Labeling.gptLabeling import GptLabeling
+from Labeling.llamaLabeling import LlamaLabeling
+from Labeling.utils.HFManager import HFManager
+from Labeling.utils.DBManager import DBManager
 import traceback
 
 import datetime
