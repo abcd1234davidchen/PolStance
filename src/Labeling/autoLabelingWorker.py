@@ -17,7 +17,7 @@ from Labeling.utils.DBManager import DBManager
 
 def agentprocess(
     func,
-    bar: tqdm.tqdm,
+    #bar: tqdm.tqdm,
     timeout: int = 15,
 ) -> dict[str, int]:
     """
@@ -43,7 +43,7 @@ def agentprocess(
     except Exception as e:
         print(f"{type(func)} labeling error: {e}: {traceback.format_exc()}")
         labels = {}
-    bar.update(1)
+    #bar.update(1)
     return labels
 
 
@@ -82,7 +82,7 @@ def labelArticles():
     )
     client_list = {"gemini": geminiClient, "gpt": gptClient, "llama": llamaClient}
     for i in bbar:
-        pbar = tqdm.tqdm(total=len(client_list.copy()), leave=False, desc="Batch Labeling")
+        #pbar = tqdm.tqdm(total=len(client_list.copy()), leave=False, desc="Batch Labeling")
         
         try:
             tasks = {}
@@ -90,7 +90,7 @@ def labelArticles():
                 try:
                     label_col = f"label{chr(ord('A')+idx)}"
                     func = partial(client.labeling_and_write_db, db, label_col, 12)
-                    tasks[name] = agentprocess(func, pbar, timeout=10)
+                    tasks[name] = agentprocess(func, timeout=10)
 
                 except TimeoutError as te:
                     print(f"{name} timeout error")
@@ -102,9 +102,8 @@ def labelArticles():
             
         except Exception as e:
             print(f"Error processing article: {e}: {traceback.format_exc()}")
-    choice = input("\n\nupload?(Y/N):")
-    if choice.lower() == "y":
-        hf.upload_db("Update at " + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+
+    hf.upload_db("Update at " + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
 
 
 if __name__ == "__main__":
