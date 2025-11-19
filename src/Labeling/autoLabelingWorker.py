@@ -7,7 +7,6 @@ import tqdm
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
 from functools import partial
 import signal
-import atexit
 import sys
 from Labeling.geminiLabeling import GeminiLabeling
 from Labeling.gptLabeling import GptLabeling
