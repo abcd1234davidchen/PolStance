@@ -24,6 +24,18 @@ jobs:
       - name: Install dependencies
         run: uv sync
 
+      # 檢查 secrets 是否存在（避免 credentials_json 為空）
+      - name: Validate GCP secrets
+        run: |
+          if [ -z "${{ secrets.GCP_SA_KEY }}" ]; then
+            echo "ERROR: GCP_SA_KEY is empty. Set repository secret GCP_SA_KEY with your service account JSON."
+            exit 1
+          fi
+          if [ -z "${{ secrets.GCP_PROJECT }}" ]; then
+            echo "ERROR: GCP_PROJECT is empty. Set repository secret GCP_PROJECT."
+            exit 1
+          fi
+
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v1
         with:
