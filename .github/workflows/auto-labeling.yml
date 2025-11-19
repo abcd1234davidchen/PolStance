@@ -21,7 +21,7 @@ jobs:
         run: uv python install 3.11 && uv venv
 
       - name: Set local package editability
-        run: uv pip install -e src/labeling
+        run: uv pip install -e .
 
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v1
