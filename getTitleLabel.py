@@ -9,6 +9,7 @@ import tqdm
 import pandas as pd
 
 load_dotenv()
+db_istructure = lambda row: (row[0], row[1], row[2]) # id, url, title
 
 def generateStance(articleText):
     client = genai.Client(
@@ -114,71 +115,17 @@ def readDB():
     conn.close()
     return rows
 
-def updateArticleLabels(article_ida, article_idb, article_idc, article_idd,
-                         article_ide, article_idf, article_idg, article_idh,
-                         article_idi, article_idj, article_idk, article_idl, labels):
+def updateArticleLabels(row_datas, labels):
     conn = sqlite3.connect('title.db')
     cursor = conn.cursor()
-    cursor.execute('''
-        UPDATE titles
-        SET label = ?
-        WHERE id = ?
-    ''', (labels.get("a", 0), article_ida))
-    cursor.execute('''
-        UPDATE titles
-        SET label = ?
-        WHERE id = ?
-    ''', (labels.get("b", 0), article_idb))
-    cursor.execute('''
-        UPDATE titles
-        SET label = ?
-        WHERE id = ?
-    ''', (labels.get("c", 0), article_idc))
-    cursor.execute('''
-        UPDATE titles
-        SET label = ?
-        WHERE id = ?
-    ''', (labels.get("d", 0), article_idd))
-    cursor.execute('''
-        UPDATE titles
-        SET label = ?
-        WHERE id = ?
-    ''', (labels.get("e", 0), article_ide))
-    cursor.execute('''
-        UPDATE titles
-        SET label = ?
-        WHERE id = ?
-    ''', (labels.get("f", 0), article_idf))
-    cursor.execute('''
-        UPDATE titles
-        SET label = ?
-        WHERE id = ?
-    ''', (labels.get("g", 0), article_idg))
-    cursor.execute('''
-        UPDATE titles
-        SET label = ?
-        WHERE id = ?
-    ''', (labels.get("h", 0), article_idh))
-    cursor.execute('''
-        UPDATE titles
-        SET label = ?
-        WHERE id = ?
-    ''', (labels.get("i", 0), article_idi))
-    cursor.execute('''
-        UPDATE titles
-        SET label = ?
-        WHERE id = ?
-    ''', (labels.get("j", 0), article_idj))
-    cursor.execute('''
-        UPDATE titles
-        SET label = ?
-        WHERE id = ?
-    ''', (labels.get("k", 0), article_idk))
-    cursor.execute('''
-        UPDATE titles
-        SET label = ?
-        WHERE id = ?
-    ''', (labels.get("l", 0), article_idl))
+    
+    
+    for idx, (article_id, _, texts) in enumerate(row_datas.keys()):
+        cursor.execute('''
+            UPDATE titles
+            SET label = ?
+            WHERE id = ?
+        ''', (labels.get(f"{chr(ord('a')+idx)}", 0), article_id))
     conn.commit()
     conn.close()
 
@@ -189,34 +136,22 @@ def labelArticles():
         # 取出12篇，若不足則補最後一篇
         def get_row(idx):
             return rows[idx] if idx < len(rows) else rows[i]
-        article_ida, _, texta = get_row(i)
-        article_idb, _, textb = get_row(i+1)
-        article_idc, _, textc = get_row(i+2)
-        article_idd, _, textd = get_row(i+3)
-        article_ide, _, texte = get_row(i+4)
-        article_idf, _, textf = get_row(i+5)
-        article_idg, _, textg = get_row(i+6)
-        article_idh, _, texth = get_row(i+7)
-        article_idi, _, texti = get_row(i+8)
-        article_idj, _, textj = get_row(i+9)
-        article_idk, _, textk = get_row(i+10)
-        article_idl, _, textl = get_row(i+11)
+        
+        row_data = {}
+        for offset in range(0, 12):
+            article_id, url, title = get_row(i+offset)
+            row_data[offset] = (article_id, url, title)
 
-        combined_text = (
-            f"a. {texta}\nb. {textb}\nc. {textc}\nd. {textd}\n"
-            f"e. {texte}\nf. {textf}\ng. {textg}\nh. {texth}\n"
-            f"i. {texti}\nj. {textj}\nk. {textk}\nl. {textl}"
-        )
+        combined_text = (f"{(chr(ord('a')+idx))}. {article_id}{"\n" if idx != 11 else ""}" for idx, (article_id, _, text) in enumerate(row_data.values()))
+        # "a. title1\n b. title2\n c. title3\n ..."
+        
         batch_num = (i // 12) + 1
-        pbar.set_description(f"Labeling Batch {batch_num} ID: {article_ida}~{article_idl}")
+        pbar.set_description(f"Labeling Batch {batch_num} ID: {row_data[0][0]}~{row_data[11][0]}")
         try:
+            raise Exception("Testing error handling")  # Remove or comment this line in production
             labels = generateStance(combined_text)
             if labels and isinstance(labels, dict):
-                updateArticleLabels(
-                    article_ida, article_idb, article_idc, article_idd,
-                    article_ide, article_idf, article_idg, article_idh,
-                    article_idi, article_idj, article_idk, article_idl, labels
-                )
+                updateArticleLabels(row_data, labels)
             else:
                 tqdm.tqdm.write(f"No labels generated for article ID {article_ida}")
         except Exception as e:

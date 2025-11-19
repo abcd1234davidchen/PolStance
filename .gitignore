@@ -1,3 +1,4 @@
+
 .vscode
 # Python-generated files
 __pycache__/
@@ -6,12 +7,13 @@ build/
 dist/
 wheels/
 *.egg-info
-
+*tmp/
 # Virtual environments
 .venv
 
 # Environment variables
 .env
+envstore
 
 # article text files
 articles.json
@@ -22,4 +24,4 @@ articles.json
 # Model files
 *.pth
 
-test
+test.ipynb
