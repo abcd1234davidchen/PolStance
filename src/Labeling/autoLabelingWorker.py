@@ -82,11 +82,11 @@ def labelArticles():
         range(0, len(rows), 12), total=(len(rows) + 11) // 12, desc="Batch progress"
     )
     client_list = {"gemini": (geminiClient,"labelA"), 
-                   #"gpt": (gptClient,"labelB"), 
+                   "gpt": (gptClient,"labelB"), 
                    "llama": (llamaClient,"labelC")
                    }
     for i in bbar:
-        print(f"Processing batch starting at index {i}...")
+        #print(f"Processing batch starting at index {i}...")
         try:
             tasks = {}
             for idx, (name, (client, label_col)) in enumerate(client_list.copy().items()):
@@ -108,7 +108,6 @@ def labelArticles():
         if int(i)%500==0 and i>0:
             hf.upload_db("Update at " + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             rows, columns = db.readDB("labelA", based=0, batch_size=1000000)
-        print(f"Batch starting at index {i} completed.")
 
 
 if __name__ == "__main__":

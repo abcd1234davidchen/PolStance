@@ -116,7 +116,6 @@ class LabelingClass:
 
         try:
             result = self.labeling(combined_text)
-            print(f"{self.__class__.__name__} labeling result: {result}")
             if result and isinstance(result, dict):
                 # Write labels back to DB
                 db_manager.updateArticleLabels(label_name, row_data, result)

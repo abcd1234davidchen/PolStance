@@ -65,7 +65,7 @@ class DBManager:
                 # each row is expected to be a tuple where first element is id
                 data_id = row[0]
                 value = model_labels.get(f"{chr(ord('a') + idx)}", -1)
-                print(f"Updating id {data_id} with {label_name} = {value}")
+                #print(f"Updating id {data_id} with {label_name} = {value}")
                 # column name can't be parameterized, use validated label_name
                 sql = f"UPDATE articleTable SET {label_name} = ? WHERE id = ?"
                 self.cursor.execute(sql, (value, data_id))
