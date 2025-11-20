@@ -19,7 +19,7 @@ from Labeling.utils.DBManager import DBManager
 def agentprocess(
     func,
     #bar: tqdm.tqdm,
-    timeout: int = 15,
+    timeout,
 ) -> dict[str, int]:
     """
     Execute a callable `func` in a thread and return its result dict.
@@ -76,22 +76,23 @@ def labelArticles():
     _hf = hf
     _db = db
 
-    rows, columns = db.readDB()
+    rows, columns = db.readDB("labelA", based=0, batch_size=1000000)
     
     bbar = tqdm.tqdm(
         range(0, len(rows), 12), total=(len(rows) + 11) // 12, desc="Batch progress"
     )
-    client_list = {"gemini": geminiClient, "gpt": gptClient, "llama": llamaClient}
+    client_list = {"gemini": (geminiClient,"labelA"), 
+                   #"gpt": (gptClient,"labelB"), 
+                   "llama": (llamaClient,"labelC")
+                   }
     for i in bbar:
-        #pbar = tqdm.tqdm(total=len(client_list.copy()), leave=False, desc="Batch Labeling")
-        
+        print(f"Processing batch starting at index {i}...")
         try:
             tasks = {}
-            for idx, (name, client) in enumerate(client_list.copy().items()):
+            for idx, (name, (client, label_col)) in enumerate(client_list.copy().items()):
                 try:
-                    label_col = f"label{chr(ord('A')+idx)}"
                     func = partial(client.labeling_and_write_db, db, label_col, 12)
-                    tasks[name] = agentprocess(func, timeout=10)
+                    tasks[name] = agentprocess(func=func, timeout=30)
 
                 except TimeoutError as te:
                     print(f"{name} timeout error")
@@ -100,11 +101,14 @@ def labelArticles():
                     
                 except Exception as e:
                     print(f"{name} setup error: {e}: {traceback.format_exc()}")
-                time.sleep(2) 
+                time.sleep(0) 
         except Exception as e:
             print(f"Error processing article: {e}: {traceback.format_exc()}")
 
-    #hf.upload_db("Update at " + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        if int(i)%500==0 and i>0:
+            hf.upload_db("Update at " + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+            rows, columns = db.readDB("labelA", based=0, batch_size=1000000)
+        print(f"Batch starting at index {i} completed.")
 
 
 if __name__ == "__main__":
