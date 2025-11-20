@@ -20,7 +20,7 @@ class GeminiLabeling(LabelingClass):
         return {
             "contents": msg,
             "system_instruction": {"parts": [{"text": self.instruction}]},
-            "generation_config": {"maxOutputTokens": 120, "temperature": 0.2},
+            "generation_config": {"temperature": 0.2},
         }
 
     def _requests_structure(self, config):
@@ -37,7 +37,6 @@ class GeminiLabeling(LabelingClass):
             response = requests.post(
                 url=self._request_url(), **(self._requests_structure(req_config))
             )
-            print(f"response{response}")
             if response.status_code != 200:
                 attempt += 1
                 continue

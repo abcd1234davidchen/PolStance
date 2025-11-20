@@ -4,7 +4,7 @@ import random
 import requests
 import subprocess
 from typing import Any
-from pathlib import Path
+import traceback
 
 class LabelingClass:
     model_id: str | None = None
@@ -46,7 +46,6 @@ class LabelingClass:
             "messages": msg,
             "system": self.instruction,
             "temperature": 0,
-            "max_output_tokens": 1024,
         }
 
     def _requests_structure(self, config) -> dict[str, Any]:
@@ -58,7 +57,7 @@ class LabelingClass:
         return {
             "headers": {
                 "Authorization": f"Bearer {token}",
-                "Content-Type": "application/json; charset=utf-8",
+                "Content-Type": "application/json",
             },
             "data": json.dumps(config),
         }
@@ -85,7 +84,7 @@ class LabelingClass:
             raise NotImplementedError("_send_request method not implemented.")
         return structured_response
 
-    def labeling_and_write_db(self, db_manager, label_name: str, batch_size: int = 12) -> dict[str, int]:
+    def labeling_and_write_db(self, db_manager, label_name: str, batch_base:int, batch_size: int = 12) -> dict[str, int]:
         """
         Convenience method: read up to `batch_size` rows from `db_manager`, build the
         combined prompt, call `labeling`, then write results back to DB using
@@ -93,7 +92,7 @@ class LabelingClass:
 
         Returns the labeling result (dict) or empty dict on failure.
         """
-        rows, columns = db_manager.readDB()
+        rows, columns = db_manager.readDB(label_name, batch_base, batch_size)
         if not rows:
             return {}
 
@@ -117,12 +116,15 @@ class LabelingClass:
 
         try:
             result = self.labeling(combined_text)
+            print(f"{self.__class__.__name__} labeling result: {result}")
             if result and isinstance(result, dict):
                 # Write labels back to DB
                 db_manager.updateArticleLabels(label_name, row_data, result)
                 return result
-        except Exception:
-            pass
+            else:
+                print(f"{self.__class__.__name__} received invalid labeling result.")
+        except Exception as e:
+            print(f"{self.__class__.__name__} labeling error: {e}: {traceback.format_exc()}")
 
         return {}
 
@@ -136,7 +138,7 @@ class LabelingClass:
             )
             if response.status_code != 200:
                 attempt += 1
-                # print(f"request failed, retrying.... Error:{response.text}")
+                print(f"request failed, retrying.... Error:{response}")
                 continue
             else:
                 response_data = response.json()
@@ -147,11 +149,17 @@ class LabelingClass:
                 encoding="utf-8",
             ) as f:
                 json.dump(response_data, f, ensure_ascii=False, indent=2)
-
-            model_content = self._get_response_text(response_data)
+            try:
+                model_content = self._get_response_text(response_data)
+            except Exception as e:
+                print(response_data)
+                print(f"Error extracting response text: {e}")
+                attempt += 1
+                continue
             structured_response = self._parse_response(model_content)
             if structured_response is not None:
                 return structured_response
             else:
+                print(f"Parsing failed, retrying... Response was: {model_content}")
                 attempt += 1
         raise ValueError(f"Failed to get a valid response after maximum attempts")

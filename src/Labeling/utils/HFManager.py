@@ -21,8 +21,10 @@ class HFManager:
             filename=self.filename,
             repo_type="dataset",
             token=self.token,
+            local_dir=os.getcwd(),
         )
         self.db_path = sql_file
+        print(f"Downloaded database to {sql_file}")
         self.db_manager = DBManager(sql_file)
         return self.db_manager
 
