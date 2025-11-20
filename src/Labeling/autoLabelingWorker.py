@@ -87,6 +87,9 @@ def labelArticles():
                    }
     for i in bbar:
         #print(f"Processing batch starting at index {i}...")
+        if client_list=={}:
+            print("No available clients remaining, exiting labeling loop.")
+            break
         try:
             tasks = {}
             for idx, (name, (client, label_col)) in enumerate(client_list.copy().items()):
