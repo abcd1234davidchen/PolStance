@@ -104,7 +104,7 @@ def labelArticles():
         except Exception as e:
             print(f"Error processing article: {e}: {traceback.format_exc()}")
 
-    hf.upload_db("Update at " + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+    #hf.upload_db("Update at " + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
 
 
 if __name__ == "__main__":
@@ -125,14 +125,14 @@ if __name__ == "__main__":
         except Exception:
             pass
 
-        try:
-            if "_hf" in globals() and _hf is not None:
-                try:
-                    _hf.upload_db("Shutdown at " + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
-                except Exception as e:
-                    print(f"Error uploading DB on shutdown: {e}")
-        except Exception:
-            pass
+        # try:
+        #     if "_hf" in globals() and _hf is not None:
+        #         try:
+        #             _hf.upload_db("Shutdown at " + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        #         except Exception as e:
+        #             print(f"Error uploading DB on shutdown: {e}")
+        # except Exception:
+        #     pass
 
         try:
             if "_db" in globals() and _db is not None:

@@ -37,6 +37,7 @@ class GeminiLabeling(LabelingClass):
             response = requests.post(
                 url=self._request_url(), **(self._requests_structure(req_config))
             )
+            print(f"response{response}")
             if response.status_code != 200:
                 attempt += 1
                 continue
@@ -62,6 +63,7 @@ class GeminiLabeling(LabelingClass):
         except (KeyError, IndexError):
             res = ""
             print(f"Warning: Unexpected response structure {traceback.format_exc()}")
+            print(response)
         return res
 
 
