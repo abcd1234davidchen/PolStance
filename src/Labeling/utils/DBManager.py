@@ -11,6 +11,11 @@ class DBManager:
         self.cursor = self.conn.cursor()
         self._lock = threading.Lock()
 
+    def connect(self):
+        self.conn = sqlite3.connect(self.db_name, check_same_thread=False)
+        self.cursor = self.conn.cursor()
+        
+        
     def readDB(self, label_name , based: int = 0, batch_size: int = 12):
         """Read up to `batch_size` rows starting from offset `based`.
 
