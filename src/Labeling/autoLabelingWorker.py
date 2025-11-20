@@ -105,7 +105,7 @@ def labelArticles():
         except Exception as e:
             print(f"Error processing article: {e}: {traceback.format_exc()}")
 
-        if int(i)%5==0 and i>0:
+        if int(i)%100==0 and i>0:
             hf.upload_db("Update at " + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             db.connect()
 
