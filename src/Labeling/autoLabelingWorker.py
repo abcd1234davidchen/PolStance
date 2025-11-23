@@ -15,6 +15,16 @@ from Labeling.llamaLabeling import LlamaLabeling
 from Labeling.utils.HFManager import HFManager
 from Labeling.utils.DBManager import DBManager
 
+class Color:
+    RED = "\033[91m"
+    GREEN = "\033[92m"
+    YELLOW = "\033[93m"
+    BLUE = "\033[94m"
+    MAGENTA = "\033[95m"
+    CYAN = "\033[96m"
+    RESET = "\033[0m"
+
+EXIT_KEY = False
 
 def agentprocess(
     func,
@@ -31,33 +41,19 @@ def agentprocess(
         try:
             labels = fut.result(timeout=timeout)
         except FuturesTimeoutError:
-            print(f"{getattr(func, '__name__', str(func))} labeling timeout after {timeout}s")
             labels = {}
             try:
                 fut.cancel()
             except Exception:
                 pass
-            raise TimeoutError(f"Provider Timeout, consider disabling {getattr(func, '__name__', str(func))}")
+            raise TimeoutError(f"Provider Timeout")
     except TimeoutError as te:
-        print(f"{type(func)} labeling timeout error: {te}: {traceback.format_exc()}")
         raise TimeoutError from te
     except Exception as e:
         print(f"{type(func)} labeling error: {e}: {traceback.format_exc()}")
         labels = {}
     #bar.update(1)
     return labels
-
-
-def compare_labels(result_dict: dict[str, dict[str, int]]) -> dict[str, int]:
-    final_labels = {}
-    for key in result_dict["gemini"].keys():
-        votes = {}
-        for model in result_dict.keys():
-            label = result_dict[model].get(key, 0)
-            votes[label] = votes.get(label, 0) + 1
-        final_label = max(votes.items(), key=lambda x: x[1])[0]
-        final_labels[key] = final_label
-    return final_labels
 
 
 def labelArticles():
@@ -81,10 +77,11 @@ def labelArticles():
     bbar = tqdm.tqdm(
         range(0, length, 12), total=(length + 11) // 12, desc="Batch progress"
     )
-    client_list = {"gemini": (geminiClient,"labelA"), 
-                   "gpt": (gptClient,"labelB"), 
-                   "llama": (llamaClient,"labelC")
-                   }
+    client_list = {
+        "gemini": (geminiClient,"labelA"), 
+        "gpt": (gptClient,"labelB"), 
+        "llama": (llamaClient,"labelC")
+    }
     for i in bbar:
         #print(f"Processing batch starting at index {i}...")
         if client_list=={}:
@@ -98,13 +95,13 @@ def labelArticles():
                     tasks[name] = agentprocess(func=func, timeout=10)
 
                 except TimeoutError as te:
-                    print(f"{name} timeout error")
-                    print("disabling this client for future tasks.")
+                    print(f"{Color.RED}{name} timeout error{Color.RESET}")
+                    print(f"{Color.YELLOW}disabling this client for future tasks.{Color.RESET}")
                     client_list.pop(name)
                     
                 except Exception as e:
                     print(f"{name} setup error: {e}: {traceback.format_exc()}")
-                time.sleep(0) 
+                time.sleep(3) 
         except Exception as e:
             print(f"Error processing article: {e}: {traceback.format_exc()}")
 
@@ -117,6 +114,9 @@ if __name__ == "__main__":
     load_dotenv()
 
     def _cleanup(signum=None, frame=None):
+        global _executor, _hf, _db
+        _db.close()
+        _executor.shutdown(wait=False)
         """Graceful shutdown for signals and atexit.
 
         If called from a signal handler, signum will be set and we exit.
@@ -131,23 +131,14 @@ if __name__ == "__main__":
         except Exception:
             pass
 
-        try:
-            if "_hf" in globals() and _hf is not None:
-                try:
-                    _hf.upload_db("Shutdown at " + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
-                except Exception as e:
-                    print(f"Error uploading DB on shutdown: {e}")
-        except Exception:
-            pass
-
-        try:
-            if "_db" in globals() and _db is not None:
-                try:
-                    _db.close()
-                except Exception as e:
-                    print(f"Error closing DB: {e}")
-        except Exception:
-            pass
+        # try:
+        #     if "_hf" in globals() and _hf is not None:
+        #         try:
+        #             _hf.upload_db("Shutdown at " + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        #         except Exception as e:
+        #             print(f"Error uploading DB on shutdown: {e}")
+        # except Exception as e :
+        #     print(f"Error during HF cleanup: {e}")
         print("Cleanup complete.")
         sys.exit(0)
 

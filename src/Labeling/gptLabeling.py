@@ -1,25 +1,25 @@
 from Labeling.mainClass import LabelingClass
 import traceback
-
+from typing import Any
 
 class GptLabeling(LabelingClass):
     def __init__(self):
         super().__init__()
-        self.model_id = "openai/gpt-oss-20b-maas"
-        self.REGION = "us-central1"
-        self.ENDPOINT = f"aiplatform.googleapis.com"
+        self.model_id = "openai/gpt-oss-120b"
 
-    def _get_response_text(self, response: dict) -> str:
-        try:
-            res = response["choices"][0]["message"]["content"]
-        except (KeyError, IndexError):
-            res = ""
-            print(f"Warning: Unexpected response structure. {traceback.format_exc()}")
-        return res
-
-    def _request_url(self):
-        return f"https://{self.ENDPOINT}/v1beta1/projects/{self.PROJECT_ID}/locations/{self.REGION}/endpoints/openapi/chat/completions"
-
+    def _request_config(self, model, msg) -> dict[str, Any]:
+        return {
+            "model": model,
+            "messages": msg,
+            "provider": {
+                "allow_fallbacks": True,
+                "only": [
+                    "parasail/fp4",
+                    "gmicloud/fp4",
+                    "novita/bf16"
+                ]
+            }
+        }
 
 if __name__ == "__main__":
     client = GptLabeling()
