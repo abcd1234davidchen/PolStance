@@ -27,7 +27,7 @@ class Color:
 
 EXIT_KEY = False
 TIME_OUT = int(os.getenv("TIMEOUT", "10"))
-
+BATCH_SIZE = 12
 def agentprocess(
     func,
     #bar: tqdm.tqdm,
@@ -77,12 +77,12 @@ def labelArticles():
     rows, columns = db.readDB("labelA", based=0, batch_size=1000000)
     length = len(rows)
     bbar = tqdm.tqdm(
-        range(0, length, 12), total=(length + 11) // 12, desc="Batch progress"
+        range(0, length, BATCH_SIZE), total=(length + 11) // BATCH_SIZE, desc="Batch progress"
     )
     client_list = {
         "gemini": (geminiClient,"labelA"), 
-        "gpt": (gptClient,"labelB"), 
-        "llama": (llamaClient,"labelC")
+        #"gpt": (gptClient,"labelB"), 
+        #"llama": (llamaClient,"labelC")
     }
     for i in bbar:
         #print(f"Processing batch starting at index {i}...")
@@ -93,7 +93,7 @@ def labelArticles():
             tasks = {}
             for idx, (name, (client, label_col)) in enumerate(client_list.copy().items()):
                 try:
-                    func = partial(client.labeling_and_write_db, db, label_col, 12)
+                    func = partial(client.labeling_and_write_db, db, label_col, BATCH_SIZE)
                     tasks[name] = agentprocess(func=func, timeout=TIME_OUT)
 
                 except TimeoutError as te:
@@ -103,12 +103,13 @@ def labelArticles():
                     
                 except Exception as e:
                     print(f"{name} setup error: {e}: {traceback.format_exc()}")
-                time.sleep(3) 
+                time.sleep(2) 
         except Exception as e:
             print(f"Error processing article: {e}: {traceback.format_exc()}")
 
-        if int(i)%100==0 and i>0:
-            hf.upload_db("Update at " + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        if int(i)%100*BATCH_SIZE==0 and i>0:
+            print(i)
+            #hf.upload_db("Update at " + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             db.connect()
 
 
