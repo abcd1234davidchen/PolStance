@@ -81,8 +81,8 @@ def labelArticles():
     )
     client_list = {
         "gemini": (geminiClient,"labelA"), 
-        #"gpt": (gptClient,"labelB"), 
-        #"llama": (llamaClient,"labelC")
+        "gpt": (gptClient,"labelB"), 
+        "llama": (llamaClient,"labelC")
     }
     for i in bbar:
         #print(f"Processing batch starting at index {i}...")
@@ -107,9 +107,8 @@ def labelArticles():
         except Exception as e:
             print(f"Error processing article: {e}: {traceback.format_exc()}")
 
-        if int(i)%100*BATCH_SIZE==0 and i>0:
-            print(i)
-            #hf.upload_db("Update at " + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        if int(i)%(100*BATCH_SIZE)==0 and i>0:
+            hf.upload_db("Update at " + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             db.connect()
 
 
