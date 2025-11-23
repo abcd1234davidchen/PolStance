@@ -172,10 +172,12 @@ if __name__ == "__main__":
     
     print(df.head())
     df_shuffled = df.sample(frac=1, random_state=42).reset_index(drop=True)
-    train_size = int(0.8 * len(df_shuffled))
+    train_size = int(0.7 * len(df_shuffled))
+    val_size = int(0.15 * len(df_shuffled))
     train_df = df_shuffled[:train_size]
-    val_df = df_shuffled[train_size:]
-    print(f"Train size: {len(train_df)}, Val size: {len(val_df)}")
+    val_df = df_shuffled[train_size:train_size+val_size]
+    test_df = df_shuffled[train_size+val_size:]
+    print(f"Train size: {len(train_df)}, Val size: {len(val_df)}, Test size: {len(test_df)}")
     train_dataset = StanceDataset(
         texts=train_df['title'].tolist(),
         labels=train_df['label'].tolist(),
@@ -188,12 +190,19 @@ if __name__ == "__main__":
         tokenizer=tokenizer,
         max_length=64
     )
+    test_dataset = StanceDataset(
+        texts=test_df['title'].tolist(),
+        labels=test_df['label'].tolist(),
+        tokenizer=tokenizer,
+        max_length=64
+    )
     train_loader = DataLoader(train_dataset, batch_size=16, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=16, shuffle=False)
+    test_loader = DataLoader(test_dataset, batch_size=16, shuffle=False)
 
     model.freeze_transformer()
 
-    num_epochs = 10
+    num_epochs = 15
     optimizer = AdamW([
         {'params': model.classifier.parameters(), 'lr': 1e-5},
         {'params': model.layer_norm.parameters(), 'lr': 1e-5},
@@ -201,6 +210,10 @@ if __name__ == "__main__":
     ], weight_decay=1e-4)
     criterion = nn.CrossEntropyLoss()
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=2, factor=0.5)
+    
+    best_val_loss = float('inf')
+    patience = 3
+    patience_counter = 0
     for epoch in range(num_epochs):
         if epoch == 6:
             print("Unfreezing transformer for fine-tuning...")
@@ -228,4 +241,16 @@ if __name__ == "__main__":
         print(f"Epoch {epoch+1}/{num_epochs}")
         print(f"Train Loss: {epoch_train_loss/valid_batches:.4f}, Train Acc: {epoch_train_accuracy/valid_batches:.4f}")
         print(f"Val Loss: {val_metrics['loss']:.4f}, Val Acc: {val_metrics['accuracy']:.4f}")
-    torch.save(model.state_dict(), 'stance_classifier.pth')
+
+        if val_metrics['loss'] < best_val_loss:
+            best_val_loss = val_metrics['loss']
+            patience_counter = 0
+            print("New best model found, saving...")
+            torch.save(model.state_dict(), 'stance_classifier.pth')
+        else:
+            patience_counter += 1
+            if patience_counter >= patience:
+                print("Early stopping triggered.")
+                break
+    test_metrics = evaluate(model, test_loader, criterion, device)
+    print(f"Test Loss: {test_metrics['loss']:.4f}, Test Acc: {test_metrics['accuracy']:.4f}")
