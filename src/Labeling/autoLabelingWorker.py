@@ -8,6 +8,7 @@ from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeou
 from functools import partial
 import signal
 import sys
+import os
 import time 
 from Labeling.geminiLabeling import GeminiLabeling
 from Labeling.gptLabeling import GptLabeling
@@ -25,6 +26,7 @@ class Color:
     RESET = "\033[0m"
 
 EXIT_KEY = False
+TIME_OUT = int(os.getenv("TIMEOUT", "10"))
 
 def agentprocess(
     func,
@@ -92,7 +94,7 @@ def labelArticles():
             for idx, (name, (client, label_col)) in enumerate(client_list.copy().items()):
                 try:
                     func = partial(client.labeling_and_write_db, db, label_col, 12)
-                    tasks[name] = agentprocess(func=func, timeout=10)
+                    tasks[name] = agentprocess(func=func, timeout=TIME_OUT)
 
                 except TimeoutError as te:
                     print(f"{Color.RED}{name} timeout error{Color.RESET}")
@@ -131,14 +133,14 @@ if __name__ == "__main__":
         except Exception:
             pass
 
-        # try:
-        #     if "_hf" in globals() and _hf is not None:
-        #         try:
-        #             _hf.upload_db("Shutdown at " + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
-        #         except Exception as e:
-        #             print(f"Error uploading DB on shutdown: {e}")
-        # except Exception as e :
-        #     print(f"Error during HF cleanup: {e}")
+        try:
+            if "_hf" in globals() and _hf is not None:
+                try:
+                    _hf.upload_db("Shutdown at " + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+                except Exception as e:
+                    print(f"Error uploading DB on shutdown: {e}")
+        except Exception as e :
+            print(f"Error during HF cleanup: {e}")
         print("Cleanup complete.")
         sys.exit(0)
 
