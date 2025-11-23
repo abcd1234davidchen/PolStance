@@ -21,20 +21,10 @@ jobs:
       - name: Set local package editability
         run: uv pip install -e .
 
-      - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v1
-        with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
-
-      - name: Set up gcloud CLI
-        uses: google-github-actions/setup-gcloud@v1
-        with:
-          project_id: ${{ secrets.GCP_PROJECT }}
-          version: "latest"
-
       - name: Run auto labeling
         env:
           DATASET_KEY: ${{ secrets.DATASET_KEY }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          OPR_KEY: ${{ secrets.OPR_KEY }}
+          TIMEOUT: ${{ vars.TIMEOUT }}
         run: |
           uv run src/Labeling/autoLabelingWorker.py
