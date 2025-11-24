@@ -96,17 +96,15 @@ def labelArticles():
                 except Exception as e:
                     print(f"{name} setup error: {e}: {traceback.format_exc()}")
                 
-                
                 time.sleep(2) 
             except Exception as e:
                 print(f"Error processing article: {e}: {traceback.format_exc()}")
 
-            if int(i)%(100*BATCH_SIZE)==0 and i>0:
+            if int(i)%100==0 and i>0:
                 hf.upload_db("Update at " + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
                 db.connect()
         hf.upload_db("Update at " + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         db.connect()
-        
     db.close()
 
 if __name__ == "__main__":
