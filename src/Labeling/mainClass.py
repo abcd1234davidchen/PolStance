@@ -44,7 +44,9 @@ class LabelingClass:
             "temperature": 0,
             "provider": {
                 "allow_fallbacks": True,
-            }
+            },
+            "presence_penalty": -1,
+            "frequency_penalty": -1,
         }
 
     def _requests_structure(self, config) -> dict[str, Any]:
