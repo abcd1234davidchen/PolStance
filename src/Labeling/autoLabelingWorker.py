@@ -71,49 +71,40 @@ def labelArticles():
     db = hf.download_db()
     _hf = hf
     _db = db
-
-    rows, columns = db.readDB("labelA", based=0, batch_size=1000000)
-    length = len(rows)
-    bbar = tqdm.tqdm(
-        range(0, length, BATCH_SIZE), total=(length + 11) // BATCH_SIZE, desc="Batch progress"
-    )
+    
     client_list = {
         "gemini": (geminiClient,"labelA"), 
         "gpt": (gptClient,"labelB"), 
         "llama": (llamaClient,"labelC")
     }
-    for i in bbar:
-        #print(f"Processing batch starting at index {i}...")
-        if client_list=={}:
-            print("No available clients remaining, exiting labeling loop.")
-            break
-        try:
-            tasks = {}
-            for idx, (name, (client, label_col)) in enumerate(client_list.copy().items()):
+    
+    for idx, (name, (client, label_col)) in enumerate(client_list.copy().items()):
+        rows, columns = db.readDB(label_col, batch_size=1000000)
+        length = len(rows)//12 + (len(rows)%12>0)
+        bbar = tqdm.tqdm(
+            range(length), desc=f"{label_col} progress"
+        )
+        for i in bbar:
+            try:
                 try:
                     func = partial(client.labeling_and_write_db, db, label_col, BATCH_SIZE)
-                    tasks[name] = agentprocess(func=func, timeout=TIME_OUT)
-                    if not tasks[name]:
-                        client_list.pop(name)
+                    agentprocess(func=func, timeout=TIME_OUT)
                 except TimeoutError as te:
-                    print(f"{Color.RED}{name} timeout error{Color.RESET}")
-                    print(f"{Color.YELLOW}disabling this client for future tasks.{Color.RESET}")
-                    client_list.pop(name)
+                    print(f"{Color.RED}{name} timeout error, skip client{Color.RESET}")
+                    break
                     
                 except Exception as e:
                     print(f"{name} setup error: {e}: {traceback.format_exc()}")
                 
                 
-            time.sleep(2) 
-        except Exception as e:
-            print(f"Error processing article: {e}: {traceback.format_exc()}")
+                time.sleep(2) 
+            except Exception as e:
+                print(f"Error processing article: {e}: {traceback.format_exc()}")
 
-        
-        
-        if int(i)%(100*BATCH_SIZE)==0 and i>0:
-            hf.upload_db("Update at " + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
-            db.connect()
-    hf.upload_db("Update at " + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+            if int(i)%(100*BATCH_SIZE)==0 and i>0:
+                hf.upload_db("Update at " + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+                db.connect()
+        #hf.upload_db("Update at " + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
 
 if __name__ == "__main__":
     load_dotenv()
@@ -136,14 +127,14 @@ if __name__ == "__main__":
         except Exception:
             pass
 
-        try:
-            if "_hf" in globals() and _hf is not None:
-                try:
-                    _hf.upload_db("Shutdown at " + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
-                except Exception as e:
-                    print(f"Error uploading DB on shutdown: {e}")
-        except Exception as e :
-            print(f"Error during HF cleanup: {e}")
+        # try:
+        #     if "_hf" in globals() and _hf is not None:
+        #         try:
+        #             _hf.upload_db("Shutdown at " + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        #         except Exception as e:
+        #             print(f"Error uploading DB on shutdown: {e}")
+        # except Exception as e :
+        #     print(f"Error during HF cleanup: {e}")
         print("Cleanup complete.")
         sys.exit(0)
 

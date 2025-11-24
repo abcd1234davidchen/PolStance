@@ -16,7 +16,7 @@ class DBManager:
         self.cursor = self.conn.cursor()
         
         
-    def readDB(self, label_name , based: int = 0, batch_size: int = 12):
+    def readDB(self, label_name , batch_size: int = 12):
         """Read up to `batch_size` rows starting from offset `based`.
 
         Returns a tuple (rows, columns). Only returns rows where title and article
@@ -27,13 +27,6 @@ class DBManager:
         - batch_size (int): maximum number of rows to return (must be >=1)
         """
         # sanitize parameters
-        try:
-            base_off = int(based)
-            if base_off < 0:
-                raise ValueError("based must be non-negative")
-        except Exception as e:
-            base_off = 0
-            print(f"Warning: Invalid 'based' parameter: {e}")
         
 
         try:
@@ -52,9 +45,9 @@ class DBManager:
                 WHERE title IS NOT NULL
                     AND article IS NOT NULL
                     AND {label_name} = -1
-                LIMIT ? OFFSET ?
+                LIMIT ?
                 """,
-                (limit, base_off),
+                (limit,)
             )
             rows = self.cursor.fetchall()
 

@@ -87,7 +87,7 @@ class LabelingClass:
             raise NotImplementedError("_send_request method not implemented.")
         return structured_response
 
-    def labeling_and_write_db(self, db_manager, label_name: str, batch_base:int, batch_size: int = 12) -> bool:
+    def labeling_and_write_db(self, db_manager, label_name: str, batch_size: int = 12) -> bool:
         """
         Convenience method: read up to `batch_size` rows from `db_manager`, build the
         combined prompt, call `labeling`, then write results back to DB using
@@ -95,7 +95,7 @@ class LabelingClass:
 
         Returns the labeling result (dict) or empty dict on failure.
         """
-        rows, columns = db_manager.readDB(label_name, batch_base, batch_size)
+        rows, columns = db_manager.readDB(label_name, batch_size)
         if not rows:
             return False
 
