@@ -87,7 +87,7 @@ class LabelingClass:
             raise NotImplementedError("_send_request method not implemented.")
         return structured_response
 
-    def labeling_and_write_db(self, db_manager, label_name: str, batch_base:int, batch_size: int = 12) -> dict[str, int]:
+    def labeling_and_write_db(self, db_manager, label_name: str, batch_base:int, batch_size: int = 12) -> bool:
         """
         Convenience method: read up to `batch_size` rows from `db_manager`, build the
         combined prompt, call `labeling`, then write results back to DB using
@@ -97,7 +97,7 @@ class LabelingClass:
         """
         rows, columns = db_manager.readDB(label_name, batch_base, batch_size)
         if not rows:
-            return {}
+            return False
 
         # Prepare row_data similar to how autoLabelingWorker used it: mapping offset->row
         def get_row(idx):
@@ -122,13 +122,13 @@ class LabelingClass:
             if result and isinstance(result, dict):
                 # Write labels back to DB
                 db_manager.updateArticleLabels(label_name, row_data, result)
-                return result
+                return True
             else:
                 print(f"{self.__class__.__name__} received invalid labeling result.")
         except Exception as e:
             print(f"{self.__class__.__name__} labeling error: {e}: {traceback.format_exc()}")
 
-        return {}
+        return True
 
     def _send_request(self, prompt: list[dict[str, str]]):
         req_config = self._request_config(self.model_id, prompt)

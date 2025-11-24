@@ -32,18 +32,18 @@ def agentprocess(
     func,
     #bar: tqdm.tqdm,
     timeout,
-) -> dict[str, int]:
+) -> bool:
     """
     Execute a callable `func` in a thread and return its result dict.
     `func` should be a callable that returns dict[str,int].
     """
-    
+    result = True
     try:
         fut = _executor.submit(func)
         try:
-            labels = fut.result(timeout=timeout)
+            result = fut.result(timeout=timeout)
         except FuturesTimeoutError:
-            labels = {}
+            result = False
             try:
                 fut.cancel()
             except Exception:
@@ -53,9 +53,7 @@ def agentprocess(
         raise TimeoutError from te
     except Exception as e:
         print(f"{type(func)} labeling error: {e}: {traceback.format_exc()}")
-        labels = {}
-    #bar.update(1)
-    return labels
+    return result
 
 
 def labelArticles():
@@ -95,7 +93,8 @@ def labelArticles():
                 try:
                     func = partial(client.labeling_and_write_db, db, label_col, BATCH_SIZE)
                     tasks[name] = agentprocess(func=func, timeout=TIME_OUT)
-
+                    if not tasks[name]:
+                        client_list.pop(name)
                 except TimeoutError as te:
                     print(f"{Color.RED}{name} timeout error{Color.RESET}")
                     print(f"{Color.YELLOW}disabling this client for future tasks.{Color.RESET}")
@@ -103,10 +102,14 @@ def labelArticles():
                     
                 except Exception as e:
                     print(f"{name} setup error: {e}: {traceback.format_exc()}")
-                time.sleep(2) 
+                
+                
+            time.sleep(2) 
         except Exception as e:
             print(f"Error processing article: {e}: {traceback.format_exc()}")
 
+        
+        
         if int(i)%(100*BATCH_SIZE)==0 and i>0:
             hf.upload_db("Update at " + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             db.connect()
