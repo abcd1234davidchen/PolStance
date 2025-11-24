@@ -106,6 +106,8 @@ def labelArticles():
                 db.connect()
         hf.upload_db("Update at " + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         db.connect()
+        
+    db.close()
 
 if __name__ == "__main__":
     load_dotenv()
