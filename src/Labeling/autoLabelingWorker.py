@@ -110,7 +110,7 @@ def labelArticles():
         if int(i)%(100*BATCH_SIZE)==0 and i>0:
             hf.upload_db("Update at " + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             db.connect()
-
+    hf.upload_db("Update at " + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
 
 if __name__ == "__main__":
     load_dotenv()
