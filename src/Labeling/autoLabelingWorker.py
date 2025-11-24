@@ -104,7 +104,7 @@ def labelArticles():
             if int(i)%(100*BATCH_SIZE)==0 and i>0:
                 hf.upload_db("Update at " + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
                 db.connect()
-        #hf.upload_db("Update at " + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        hf.upload_db("Update at " + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
 
 if __name__ == "__main__":
     load_dotenv()
@@ -127,14 +127,14 @@ if __name__ == "__main__":
         except Exception:
             pass
 
-        # try:
-        #     if "_hf" in globals() and _hf is not None:
-        #         try:
-        #             _hf.upload_db("Shutdown at " + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
-        #         except Exception as e:
-        #             print(f"Error uploading DB on shutdown: {e}")
-        # except Exception as e :
-        #     print(f"Error during HF cleanup: {e}")
+        try:
+            if "_hf" in globals() and _hf is not None:
+                try:
+                    _hf.upload_db("Shutdown at " + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+                except Exception as e:
+                    print(f"Error uploading DB on shutdown: {e}")
+        except Exception as e :
+            print(f"Error during HF cleanup: {e}")
         print("Cleanup complete.")
         sys.exit(0)
 
