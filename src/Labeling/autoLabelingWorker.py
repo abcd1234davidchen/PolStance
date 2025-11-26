@@ -112,7 +112,7 @@ def labelArticles():
             table = tbl_row[0]
             db.cursor.execute(f"""
                 UPDATE '{table}'
-                SET label_vote = CASE
+                SET label = CASE
                     WHEN labelA = labelB OR labelA = labelC THEN labelA
                     WHEN labelB = labelC THEN labelB
                     ELSE -2
