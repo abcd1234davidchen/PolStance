@@ -105,6 +105,24 @@ def labelArticles():
                 db.connect()
         hf.upload_db("Update at " + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         db.connect()
+    try:
+        db.cursor.execute("SELECT name FROM 'articleTable'")
+        tbl_row = db.cursor.fetchone()
+        if tbl_row:
+            table = tbl_row[0]
+            db.cursor.execute(f"""
+                UPDATE '{table}'
+                SET label_vote = CASE
+                    WHEN labelA = labelB OR labelA = labelC THEN labelA
+                    WHEN labelB = labelC THEN labelB
+                    ELSE -2
+                END
+                WHERE labelA IS NOT NULL OR labelB IS NOT NULL OR labelC IS NOT NULL
+            """)
+            db.cursor.connection.commit()
+    except Exception as e:
+        print(f"Vote aggregation failed: {e}: {traceback.format_exc()}")
+    db.cursor.execute("")
     db.close()
 
 if __name__ == "__main__":
