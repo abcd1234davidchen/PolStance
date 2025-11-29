@@ -12,7 +12,7 @@ import os
 import time 
 from Labeling.geminiLabeling import GeminiLabeling
 from Labeling.gptLabeling import GptLabeling
-from Labeling.llamaLabeling import LlamaLabeling
+from Labeling.claudeLabeling import ClaudeLabeling
 from Labeling.utils.HFManager import HFManager
 from Labeling.utils.DBManager import DBManager
 
@@ -59,7 +59,7 @@ def agentprocess(
 def labelArticles():
     geminiClient = GeminiLabeling()
     gptClient = GptLabeling()
-    llamaClient = LlamaLabeling()
+    llamaClient = ClaudeLabeling()
     # 共享 executor 避免每次建立 with-block 導致 shutdown(wait=True) 的阻塞
     global _executor
     if "_executor" not in globals():
