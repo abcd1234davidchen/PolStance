@@ -16,7 +16,7 @@ def main():
     # Configuration
     DB_PATH = "article.db"
     CHECKPOINT = "hfl/chinese-roberta-wwm-ext"
-    MAX_LENGTH = 64
+    MAX_LENGTH = 512
     BATCH_SIZE = 32
     NUM_CLASSES = 3
     NUM_EPOCHS = 30
@@ -55,19 +55,19 @@ def main():
         texts=train_df["article"].tolist(),
         labels=train_df["label"].tolist(),
         tokenizer=tokenizer,
-        max_length=64,
+        max_length=MAX_LENGTH,
     )
     val_dataset = StanceDataset(
         texts=val_df["article"].tolist(),
         labels=val_df["label"].tolist(),
         tokenizer=tokenizer,
-        max_length=64,
+        max_length=MAX_LENGTH,
     )
     test_dataset = StanceDataset(
         texts=test_df["article"].tolist(),
         labels=test_df["label"].tolist(),
         tokenizer=tokenizer,
-        max_length=64,
+        max_length=MAX_LENGTH,
     )
 
     train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
