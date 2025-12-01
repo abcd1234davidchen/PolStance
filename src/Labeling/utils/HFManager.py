@@ -7,7 +7,7 @@ load_dotenv()
 
 
 class HFManager:
-    def __init__(self, filename="article.db") -> None:
+    def __init__(self, filename=f"{os.getenv("DBNAME")}.db") -> None:
         self.repo_id = "TWCKaijin/PolStance"
         self.filename = filename
         self.token = os.getenv("DATASET_KEY")

@@ -26,5 +26,6 @@ jobs:
           DATASET_KEY: ${{ secrets.DATASET_KEY }}
           OPR_KEY: ${{ secrets.OPR_KEY }}
           TIMEOUT: ${{ vars.TIMEOUT }}
+          DBNAME: ${{ vars.DBNAME }}
         run: |
           uv run src/Labeling/autoLabelingWorker.py
