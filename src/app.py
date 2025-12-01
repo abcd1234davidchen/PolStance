@@ -25,7 +25,7 @@ class StanceClassifier(nn.Module):
         return logits
     
 torch.manual_seed(42)
-checkpoint = "bert-base-chinese"
+checkpoint = "hfl/chinese-roberta-wwm-ext"
 tokenizer = AutoTokenizer.from_pretrained(checkpoint)
 base_model = AutoModel.from_pretrained(checkpoint)
 

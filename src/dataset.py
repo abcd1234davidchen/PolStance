@@ -31,13 +31,13 @@ class StanceDataset(Dataset):
 
 def create_dataset(db_path):
     conn = sqlite3.connect(db_path)
-    df = pd.read_sql_query("SELECT title, label FROM titles", conn)
-    df = df.dropna(subset=["title", "label"])
-    df = df[df["title"].str.len() > 0]
+    df = pd.read_sql_query("SELECT article, label FROM articleTable", conn)
+    df = df.dropna(subset=["article", "label"])
+    df = df[df["article"].str.len() > 0]
     df["label"] = df["label"] - 1
     df = df[df["label"].isin([0, 1, 2])]
     min_label_count = df["label"].value_counts().min()
     print(f"各標籤數量：\n{df['label'].value_counts()}")
     df = df.groupby("label").sample(n=min_label_count, random_state=42)
     conn.close()
-    return df[["title", "label"]]
+    return df[["article", "label"]]

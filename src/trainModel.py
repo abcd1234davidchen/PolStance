@@ -4,9 +4,9 @@ from transformers import AutoTokenizer, AutoModel
 from huggingface_hub import login
 from dotenv import load_dotenv
 from torch.utils.data import DataLoader
-from src.model import StanceClassifier
-from src.dataset import StanceDataset, create_dataset
-from src.trainer import Trainer
+from model import StanceClassifier
+from dataset import StanceDataset, create_dataset
+from trainer import Trainer
 
 
 def main():
@@ -14,12 +14,12 @@ def main():
     login(token=os.getenv("HUGGINGFACE_API_KEY"))
 
     # Configuration
-    DB_PATH = "title.db"
-    CHECKPOINT = "bert-base-chinese"
+    DB_PATH = "article.db"
+    CHECKPOINT = "hfl/chinese-roberta-wwm-ext"
     MAX_LENGTH = 64
-    BATCH_SIZE = 16
+    BATCH_SIZE = 32
     NUM_CLASSES = 3
-    NUM_EPOCHS = 15
+    NUM_EPOCHS = 30
     MODEL_SAVE_PATH = "stance_classifier.pth"
 
     device = torch.device(
@@ -52,19 +52,19 @@ def main():
     )
 
     train_dataset = StanceDataset(
-        texts=train_df["title"].tolist(),
+        texts=train_df["article"].tolist(),
         labels=train_df["label"].tolist(),
         tokenizer=tokenizer,
         max_length=64,
     )
     val_dataset = StanceDataset(
-        texts=val_df["title"].tolist(),
+        texts=val_df["article"].tolist(),
         labels=val_df["label"].tolist(),
         tokenizer=tokenizer,
         max_length=64,
     )
     test_dataset = StanceDataset(
-        texts=test_df["title"].tolist(),
+        texts=test_df["article"].tolist(),
         labels=test_df["label"].tolist(),
         tokenizer=tokenizer,
         max_length=64,
