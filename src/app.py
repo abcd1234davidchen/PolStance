@@ -1,48 +1,13 @@
 import torch
 import torch.nn as nn
-from transformers import AutoTokenizer, AutoModel
+from transformers import AutoModel, BertTokenizerFast
 import gradio as gr
 import re
+from model import StanceClassifier
 
-class StanceClassifier(nn.Module):
-    def __init__(self,transformer_model, num_classes, dropout_rate=0.3):
-        super(StanceClassifier, self).__init__()
-        self.transformer = transformer_model
-        self.dropout = nn.Dropout(dropout_rate)
-        self.layer_norm = nn.LayerNorm(transformer_model.config.hidden_size)
-        l0 = transformer_model.config.hidden_size
-        l1 = transformer_model.config.hidden_size * 2
-        l2 = l1 // 2
-        l3 = l2 // 2
-        self.classifier = nn.Sequential(
-            nn.Linear(l0, l1),
-            nn.LayerNorm(l1),
-            nn.GELU(),
-            nn.Dropout(dropout_rate),
-            nn.Linear(l1, l2),
-            nn.LayerNorm(l2),
-            nn.GELU(),
-            nn.Dropout(dropout_rate),
-            nn.Linear(l2, l3),
-            nn.LayerNorm(l3),
-            nn.GELU(),
-            nn.Linear(l3, num_classes),
-        )
-        
-        self.attention_vector = nn.Linear(l0, 1)
-        nn.init.xavier_uniform_(self.attention_vector.weight)
-        
-        
-    def forward(self, input_ids, attention_mask):
-        outputs = self.transformer(input_ids=input_ids, attention_mask=attention_mask)
-        pooled_output = outputs.last_hidden_state[:, 0]
-        pooled_output = self.layer_norm(pooled_output)
-        logits = self.classifier(pooled_output)
-        return logits
-    
 torch.manual_seed(42)
-checkpoint = "hfl/chinese-roberta-wwm-ext"
-tokenizer = AutoTokenizer.from_pretrained(checkpoint)
+checkpoint = "ckiplab/bert-base-chinese"
+tokenizer = BertTokenizerFast.from_pretrained('bert-base-chinese')
 base_model = AutoModel.from_pretrained(checkpoint)
 
 model = StanceClassifier(base_model, num_classes=3)
