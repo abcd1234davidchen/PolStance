@@ -13,6 +13,9 @@ class GptLabeling(LabelingClass):
             "messages": msg,
             "provider": {
                 "allow_fallbacks": True,
+            },
+            "reasoning": {
+                "effort": "none" 
             }
         }
 

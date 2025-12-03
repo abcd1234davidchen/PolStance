@@ -10,8 +10,12 @@ class GeminiLabeling(LabelingClass):
 
     def _request_config(self, model, msg) -> dict[str, Any]:
         return {
+
             "model": model,
             "messages": msg,
+            "reasoning": {
+                "effort": "none" 
+            }
         }
 
 if __name__ == "__main__":
