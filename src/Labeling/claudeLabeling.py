@@ -16,7 +16,7 @@ class ClaudeLabeling(LabelingClass):
                 "allow_fallbacks": True
             },
             "reasoning": {
-                "effort": "none" 
+                "effort": "minimal" 
             }
         }
     

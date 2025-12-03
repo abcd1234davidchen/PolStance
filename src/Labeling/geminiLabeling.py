@@ -14,7 +14,7 @@ class GeminiLabeling(LabelingClass):
             "model": model,
             "messages": msg,
             "reasoning": {
-                "effort": "none" 
+                "effort": "minimal" 
             }
         }
 
