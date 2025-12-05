@@ -13,8 +13,8 @@ class Trainer:
         val_loader,
         test_loader,
         device,
-        num_epochs=15,
-        patience=3,
+        num_epochs=16,
+        patience=32,
         save_path="stance_classifier.pth",
     ):
         self.model = model
@@ -29,9 +29,9 @@ class Trainer:
         self.criterion = nn.CrossEntropyLoss()
         self.optimizer = AdamW(
             [
-                {"params": model.classifier.parameters(), "lr": 1e-5},
-                {"params": model.layer_norm.parameters(), "lr": 1e-5},
-                {"params": model.dropout.parameters(), "lr": 1e-5},
+                {"params": model.classifier_params(), "lr": 1e-4},
+                {"params": model.layer_norm.parameters(), "lr": 1e-4},
+                {"params": model.dropout.parameters(), "lr": 1e-4},
             ],
             weight_decay=1e-4,
         )
@@ -112,9 +112,10 @@ class Trainer:
     def train(self):
         best_val_loss = float("inf")
         patience_counter = 0
-
+        print(f"Trainable LLMs params: {sum(p.numel() for p in list(self.model.transformer.parameters()))}")
+        print(f"Trainable head params: {sum(p.numel() for p in self.model.classifier_params())}")
         for epoch in range(self.num_epochs):
-            if epoch == 6:
+            if epoch == 8:
                 print("Unfreezing transformer for fine-tuning...")
                 self.model.unfreeze_transformer()
                 self.optimizer.add_param_group(
@@ -134,8 +135,10 @@ class Trainer:
                     epoch_train_loss += train_metrics["loss"]
                     epoch_train_accuracy += train_metrics["accuracy"]
                     valid_batches += 1
+                else:
+                    print("Skipped a batch due to NaN/Inf issues.")
 
-                if valid_batches > 0 and valid_batches % 30 == 0:
+                if valid_batches > 0:
                     pbar.set_description(
                         f"Epoch: {epoch + 1}/{self.num_epochs} Loss: {epoch_train_loss / valid_batches:.4f}, Acc: {epoch_train_accuracy / valid_batches:.4f}"
                     )

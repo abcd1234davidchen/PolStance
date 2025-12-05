@@ -31,8 +31,12 @@ class StanceDataset(Dataset):
 
 def create_dataset(db_path):
     conn = sqlite3.connect(db_path)
-    df = pd.read_sql_query("SELECT article, label FROM articleTable", conn)
-    df = df.dropna(subset=["article", "label"])
+    df = pd.read_sql_query("SELECT url, article, label, title FROM articleTable", conn)
+    df = df.dropna(subset=["article", "label", "title"])
+    print(f"Initial dataset size: {len(df)}")
+    df = df[df["url"].str.contains("cti") == False]
+    print(f"cleaned size: {len(df)}")
+    
     df = df[df["article"].str.len() > 0]
     df["label"] = df["label"] - 1
     df = df[df["label"].isin([0, 1, 2])]

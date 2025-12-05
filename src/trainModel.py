@@ -1,6 +1,6 @@
 import os
 import torch
-from transformers import AutoTokenizer, AutoModel
+from transformers import AutoModel, BertTokenizerFast
 from huggingface_hub import login
 from dotenv import load_dotenv
 from torch.utils.data import DataLoader
@@ -15,11 +15,11 @@ def main():
 
     # Configuration
     DB_PATH = "article.db"
-    CHECKPOINT = "hfl/chinese-roberta-wwm-ext"
+    CHECKPOINT = "ckiplab/bert-base-chinese"
     MAX_LENGTH = 512
     BATCH_SIZE = 32
     NUM_CLASSES = 3
-    NUM_EPOCHS = 30
+    NUM_EPOCHS = 32
     MODEL_SAVE_PATH = "stance_classifier.pth"
 
     device = torch.device(
@@ -35,11 +35,11 @@ def main():
     df = create_dataset(DB_PATH)
     print(df.head())
 
-    tokenizer = AutoTokenizer.from_pretrained(CHECKPOINT)
+    tokenizer = BertTokenizerFast.from_pretrained('bert-base-chinese')
     if tokenizer.pad_token is None:
         tokenizer.add_special_tokens({"pad_token": "[PAD]"})
 
-    df_shuffled = df.sample(frac=1, random_state=42).reset_index(drop=True)
+    df_shuffled = df.sample(frac=1).reset_index(drop=True)
     train_size = int(0.7 * len(df_shuffled))
     val_size = int(0.15 * len(df_shuffled))
 

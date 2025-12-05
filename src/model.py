@@ -8,16 +8,31 @@ class StanceClassifier(nn.Module):
         self.transformer = transformer_model
         self.dropout = nn.Dropout(dropout_rate)
         self.layer_norm = nn.LayerNorm(transformer_model.config.hidden_size)
+        
+        l0 = transformer_model.config.hidden_size
+        l1 = transformer_model.config.hidden_size * 2
+        l2 = l1 // 2
+        l3 = l2 // 2
+        # classifier expects pooled token representation (batch, hidden)
         self.classifier = nn.Sequential(
+            nn.Linear(l0, l1),
+            nn.LayerNorm(l1),
+            nn.GELU(),
             nn.Dropout(dropout_rate),
-            nn.Linear(
-                transformer_model.config.hidden_size,
-                transformer_model.config.hidden_size // 2,
-            ),
-            nn.ReLU(),
+            nn.Linear(l1, l2),
+            nn.LayerNorm(l2),
+            nn.GELU(),
             nn.Dropout(dropout_rate),
-            nn.Linear(transformer_model.config.hidden_size // 2, num_classes),
+            nn.Linear(l2, l3),
+            nn.LayerNorm(l3),
+            nn.GELU(),
+            nn.Linear(l3, num_classes),
         )
+
+        self.attention_vector = nn.Linear(l0, 1)
+        nn.init.xavier_uniform_(self.attention_vector.weight)
+
+        
         self.freeze_transformer()
 
     def freeze_transformer(self):
@@ -39,7 +54,14 @@ class StanceClassifier(nn.Module):
                 input_ids=input_ids, attention_mask=attention_mask
             )
 
-        pooled_output = outputs.last_hidden_state[:, 0]
+        # token-level hidden states: (batch, seq_len, hidden)
+        token_states = outputs.last_hidden_state
+
+        scores = self.attention_vector(token_states).squeeze(-1)  # (batch, seq_len)
+        mask = attention_mask.to(dtype=torch.bool)  # (batch, seq_len)
+        scores = scores.masked_fill(~mask, -1e9)
+        weights = torch.softmax(scores, dim=1)  # (batch, seq_len)
+        pooled_output = (weights.unsqueeze(-1) * token_states).sum(dim=1)  # (batch, hidden)
 
         if torch.isnan(pooled_output).any() or torch.isinf(pooled_output).any():
             print("WARNING: Transformer output NaN/Inf")
@@ -52,3 +74,9 @@ class StanceClassifier(nn.Module):
         pooled_output = self.layer_norm(pooled_output)
         logits = self.classifier(pooled_output)
         return logits
+
+    def classifier_params(self):
+        return list(self.classifier.parameters())
+    
+    def transformer_params(self):
+        return list(self.transformer.parameters())
