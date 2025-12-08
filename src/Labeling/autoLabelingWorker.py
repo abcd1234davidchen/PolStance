@@ -12,7 +12,7 @@ import os
 import time 
 from Labeling.geminiLabeling import GeminiLabeling
 from Labeling.gptLabeling import GptLabeling
-from Labeling.llamaLabeling import LlamaLabeling
+from Labeling.claudeLabeling import ClaudeLabeling
 from Labeling.utils.HFManager import HFManager
 from Labeling.utils.DBManager import DBManager
 
@@ -59,7 +59,7 @@ def agentprocess(
 def labelArticles():
     geminiClient = GeminiLabeling()
     gptClient = GptLabeling()
-    llamaClient = LlamaLabeling()
+    llamaClient = ClaudeLabeling()
     # 共享 executor 避免每次建立 with-block 導致 shutdown(wait=True) 的阻塞
     global _executor
     if "_executor" not in globals():
@@ -105,7 +105,22 @@ def labelArticles():
                 db.connect()
         hf.upload_db("Update at " + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         db.connect()
+    try:
+        db.cursor.execute(f"""
+            UPDATE 'articleTable'
+            SET label = CASE
+                WHEN labelA = labelB OR labelA = labelC THEN labelA
+                WHEN labelB = labelC THEN labelB
+                ELSE -2
+            END
+            WHERE labelA IS NOT NULL OR labelB IS NOT NULL OR labelC IS NOT NULL
+        """)
+        db.conn.commit()
+        print("Vote aggregation completed successfully.")
+    except Exception as e:
+        print(f"Vote aggregation failed: {e}: {traceback.format_exc()}")
     db.close()
+    hf.upload_db("Update at " + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
 
 if __name__ == "__main__":
     load_dotenv()

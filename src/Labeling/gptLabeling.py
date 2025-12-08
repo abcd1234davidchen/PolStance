@@ -5,7 +5,7 @@ from typing import Any
 class GptLabeling(LabelingClass):
     def __init__(self):
         super().__init__()
-        self.model_id = "openai/gpt-oss-120b"
+        self.model_id = "openai/gpt-5-mini"
 
     def _request_config(self, model, msg) -> dict[str, Any]:
         return {
@@ -13,11 +13,9 @@ class GptLabeling(LabelingClass):
             "messages": msg,
             "provider": {
                 "allow_fallbacks": True,
-                "only": [
-                    "parasail/fp4",
-                    "gmicloud/fp4",
-                    "novita/bf16"
-                ]
+            },
+            "reasoning": {
+                "effort": "minimal" 
             }
         }
 

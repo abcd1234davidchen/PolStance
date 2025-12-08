@@ -17,3 +17,9 @@ dependencies = [
     "tqdm>=4.67.1",
     "transformers[sentencepiece]>=4.56.2",
 ]
+
+[dependency-groups]
+dev = [
+    "embedding-atlas>=0.13.0",
+    "uv>=0.9.16",
+]

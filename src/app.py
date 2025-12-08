@@ -1,32 +1,13 @@
 import torch
 import torch.nn as nn
-from transformers import AutoTokenizer, AutoModel
+from transformers import AutoModel, BertTokenizerFast
 import gradio as gr
 import re
+from model import StanceClassifier
 
-class StanceClassifier(nn.Module):
-    def __init__(self,transformer_model, num_classes, dropout_rate=0.6):
-        super(StanceClassifier, self).__init__()
-        self.transformer = transformer_model
-        self.dropout = nn.Dropout(dropout_rate)
-        self.layer_norm = nn.LayerNorm(transformer_model.config.hidden_size)
-        self.classifier = nn.Sequential(
-            nn.Dropout(dropout_rate),
-            nn.Linear(transformer_model.config.hidden_size, transformer_model.config.hidden_size//2),
-            nn.ReLU(),
-            nn.Dropout(dropout_rate),
-            nn.Linear(transformer_model.config.hidden_size//2, num_classes)
-        )
-    def forward(self, input_ids, attention_mask):
-        outputs = self.transformer(input_ids=input_ids, attention_mask=attention_mask)
-        pooled_output = outputs.last_hidden_state[:, 0]
-        pooled_output = self.layer_norm(pooled_output)
-        logits = self.classifier(pooled_output)
-        return logits
-    
 torch.manual_seed(42)
-checkpoint = "bert-base-chinese"
-tokenizer = AutoTokenizer.from_pretrained(checkpoint)
+checkpoint = "ckiplab/bert-base-chinese"
+tokenizer = BertTokenizerFast.from_pretrained('bert-base-chinese')
 base_model = AutoModel.from_pretrained(checkpoint)
 
 model = StanceClassifier(base_model, num_classes=3)
@@ -35,13 +16,13 @@ model.eval()
 labels = ['KMT', 'DPP', 'Neutral']
 
 def predict_stance(text):
-    inputs = tokenizer(text, return_tensors="pt", padding=True, truncation=True, max_length=64)
+    inputs = tokenizer(text, return_tensors="pt", padding=True, truncation=True, max_length=512)
     with torch.no_grad():
         outputs = model(
             input_ids=inputs["input_ids"],
             attention_mask=inputs["attention_mask"]
         )
-        probs = nn.Softmax(dim=1)(outputs)
+        probs = nn.Softmax()(outputs)
         print(probs)
         predicted_class = torch.argmax(probs, dim=1).item()
         confidence = probs[0][predicted_class].item()
@@ -49,10 +30,11 @@ def predict_stance(text):
 
 def gradio_interface(text):
     sentences = re.split(r"[。！？\n]", text)
-    sentences = [s for s in sentences if s.strip()]
+    sentences = [s for idx, s in enumerate(sentences) if s.strip()]
+    accumulate_sentence = [" ".join(sentences[:idx+1]) for idx, s in enumerate(sentences) if s.strip()]
     results = []
-    for s in sentences:
-        stance, conf = predict_stance(s)
+    for s, acus in zip(sentences, accumulate_sentence):
+        stance, conf = predict_stance(acus)
         results.append((s + f" (Confidence: {conf:.4f})", stance))
     return results
 

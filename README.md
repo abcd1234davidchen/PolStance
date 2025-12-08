@@ -6,26 +6,41 @@ It works by a fine-tuned BERT model on a dataset of political statements labeled
 
 This repository contains both the training and inference code, as well as how the dataset is obtained. The model is trained on Chinese and classifies the stances into "KMT", "DPP", and "Neutral".
 
-The result has the accuracy of 72%, but the labeling quality is off, and the model seems to be unable to understand against statements. More work is needed to improve the model performance.
+The result has the accuracy of 72%, but the labeling quality is off, and the model seems to be unable to understand criticism and sarcasm. More work is needed to improve the model performance.
 
 The project is currently in update phase, upgrading from analyzing title to analyze article content. Legacy version of the project is deployed onto Huggingface spaces for easy access. Click [here](https://huggingface.co/spaces/abcd1234davidchen/PolStance) to try it out.
 
 ## Status
  - [x] Implemented article crawling from multiple news websites
  - [x] Implemented data cleaning
- - [ ] Implemented data labeling using "Voting" mechanism from multiple LLMs
- - [ ] Implemented model training using BERT
+ - [x] Implemented data labeling using "Voting" mechanism from multiple LLMs
+ - [x] Implemented model training using BERT
  - [ ] Setup command line interface for managing the pipeline
- - [ ] Setup web app for easy access
+ - [x] Setup web app for easy access
 
 ## Crawlers and Data cleaning
-The crawlers are implemented in `getArticle.py`. The script uses selenium for web scraping and BeautifulSoup for HTML parsing. It includes functions to crawl titles from multiple news websites. The data cleaning functions are also included in this script. The base cleaning is implemented by removing short or empty titles and articles. Roughly 30k titles can be obtained after crawling and cleaning.
+The crawlers are implemented in `getArticle.py`. The script uses selenium for web scraping and BeautifulSoup for HTML parsing. It includes functions to crawl titles from multiple news websites. The data cleaning functions are also included in this script. The base cleaning is implemented by removing short or empty titles and articles. Roughly 30k titles can be obtained after crawling and cleaning. The cleaned data is saved into a local SQLite database for later use.
 
-## Data Labeling(legacy: Title Labeling)
-The data labeling is done using Gemini flash lite model. The labeling function is implemented in `getTitleLabel.py`. The script reads the cleaned data and uses the Gemini flash model to label each title with its stances. The labeled data is saved into the same db. The labeling turns out the data has the ratio of 7:5:7 for KMT/DPP/Neutral.
+## Database
+The project uses SQLite as the database to store the crawled and cleaned data. The database schema is defined as follows:
+```sql
+CREATE TABLE IF NOT EXISTS articleTable (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    url TEXT UNIQUE,
+    title TEXT,
+    article TEXT,
+    labelA INTEGER,
+    labelB INTEGER,
+    labelC INTEGER,
+    label INTEGER
+)
+```
 
-## Model Training(legacy: Title-based Model Training)
-The model training is implemented in `trainModel.py`. The script uses the Hugging Face Transformers library to fine-tune a BERT model on the labeled dataset. The model adds layers for classification and uses cross-entropy loss for training. The trained model is saved for later use. The process is optimized for GPU, and is done on my base line M3 Pro MacBook Pro with MPS backend. The training achieves an accuracy of around 72% on the validation set.
+## Data Labeling
+The data labeling is done with three LLMs and a voting mechanism to improve the labeling quality. The three models are Gemini 2.5 Flash, GPT-OSS 120B and Claude Haiku 4.5. The final label is determined by majority voting among the three models. The labeling process is implemented in `Labeling/autoLabelingWorker.py`. The script reads the cleaned data from the database, sends each title to the three LLMs for labeling, and stores the individual labels and final label back into the database.
+
+## Model Training
+The model training is implemented in `trainModel.py`. The script uses the Hugging Face Transformers library to fine-tune a BERT model on the labeled dataset. The model adds layers for classification and uses cross-entropy loss for training. The trained model is saved for later use. The training achieves an accuracy of around 72% on the validation set.
 
 ## Inference(legacy: Title-based Inference)
 The inference pipeline is implemented in `inference.py`. The script loads the trained model and provides a function to predict the stance of a given sentence.
