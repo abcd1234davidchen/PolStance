@@ -5,12 +5,11 @@ import sqlite3
 
 
 class StanceDataset(Dataset):
-    def __init__(self, texts, labels, tokenizer, max_length=64):
+    def __init__(self, texts, labels, tokenizer, max_length=64, split=None):
         self.texts = texts
         self.labels = labels
         self.tokenizer = tokenizer
         self.max_length = max_length
-
     def __len__(self):
         return len(self.texts)
 
@@ -26,6 +25,7 @@ class StanceDataset(Dataset):
         )
         item = {key: val.squeeze(0) for key, val in encoding.items()}
         item["labels"] = torch.tensor(label, dtype=torch.long)
+        item["text"] = text
         return item
 
 
@@ -40,8 +40,6 @@ def create_dataset(db_path):
     df = df[df["article"].str.len() > 0]
     df["label"] = df["label"] - 1
     df = df[df["label"].isin([0, 1, 2])]
-    min_label_count = df["label"].value_counts().min()
     print(f"各標籤數量：\n{df['label'].value_counts()}")
-    df = df.groupby("label").sample(n=min_label_count, random_state=42)
     conn.close()
     return df[["article", "label"]]
