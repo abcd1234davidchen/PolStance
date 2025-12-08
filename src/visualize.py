@@ -45,7 +45,7 @@ model.load_state_dict(torch.load("stance_classifier.pth", map_location=torch.dev
 model.to(device)
 
 MAX_LENGTH = 512
-BATCH_SIZE = 32
+BATCH_SIZE = 16
 
 df = create_dataset("article.db")
 dataset = StanceDataset(
@@ -64,7 +64,7 @@ print(f"Extraction complete. Shape: {embeddings.shape}")
 
 df_embeddings = pd.DataFrame({
     "embedding": list(embeddings),
-    "label": labels,
-    "text": texts,
+    "label": df["label"].tolist(),
+    "text": texts
 })
 df_embeddings.to_parquet("embeddings.parquet")
