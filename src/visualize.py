@@ -68,3 +68,6 @@ df_embeddings = pd.DataFrame({
     "text": texts,
 })
 df_embeddings.to_parquet("embeddings.parquet")
+
+# To visualize the embeddings, you can use the following command with embedding-atlas:
+# uv run embedding-atlas embeddings.parquet --vector embedding
