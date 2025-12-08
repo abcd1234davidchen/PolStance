@@ -8,6 +8,10 @@ from model import StanceClassifier
 from dataset import StanceDataset, create_dataset
 from trainer import Trainer
 
+if os.uname().nodename == "w61":
+    os.environ["CUDA_VISIBLE_DEVICES"] = "4"
+else:
+    pass
 
 def main():
     load_dotenv()
