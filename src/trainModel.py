@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 from torch.utils.data import DataLoader
 from model import StanceClassifier
 from dataset import StanceDataset, create_dataset
+from Labeling.utils.HFManager import HFManager
 from trainer import Trainer
 
 if os.uname().nodename == "w61":
@@ -18,12 +19,14 @@ def main():
     login(token=os.getenv("HUGGINGFACE_API_KEY"))
 
     # Configuration
-    DB_PATH = "article.db"
+    #DB_PATH = "article.db"
     CHECKPOINT = "ckiplab/bert-base-chinese"
     MAX_LENGTH = 512
     BATCH_SIZE = 32
     NUM_CLASSES = 3
-    NUM_EPOCHS = 32
+    NUM_EPOCHS = 16
+    WARM_UP_EPOCHS = 6
+    PATIENCE = 4
     MODEL_SAVE_PATH = "stance_classifier.pth"
 
     device = torch.device(
@@ -36,7 +39,9 @@ def main():
     print(f"Using device: {device}")
 
     # Data Preparation
-    df = create_dataset(DB_PATH)
+    hf_manager = HFManager()
+    hf_manager.download_db()
+    df = create_dataset(hf_manager.db_path)
     print(df.head())
 
     tokenizer = BertTokenizerFast.from_pretrained('bert-base-chinese')
@@ -93,6 +98,8 @@ def main():
         test_loader=test_loader,
         device=device,
         num_epochs=NUM_EPOCHS,
+        warmup_epochs=WARM_UP_EPOCHS,
+        patience=PATIENCE,
         save_path=MODEL_SAVE_PATH,
     )
 

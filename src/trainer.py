@@ -14,7 +14,8 @@ class Trainer:
         test_loader,
         device,
         num_epochs=16,
-        patience=32,
+        warmup_epochs=6,
+        patience=4,
         save_path="stance_classifier.pth",
     ):
         self.model = model
@@ -25,6 +26,7 @@ class Trainer:
         self.num_epochs = num_epochs
         self.patience = patience
         self.save_path = save_path
+        self.warmup_epochs = warmup_epochs
 
         self.criterion = nn.CrossEntropyLoss()
         self.optimizer = AdamW(
@@ -115,7 +117,7 @@ class Trainer:
         print(f"Trainable LLMs params: {sum(p.numel() for p in list(self.model.transformer.parameters()))}")
         print(f"Trainable head params: {sum(p.numel() for p in self.model.classifier_params())}")
         for epoch in range(self.num_epochs):
-            if epoch == 8:
+            if epoch == self.warmup_epochs:
                 print("Unfreezing transformer for fine-tuning...")
                 self.model.unfreeze_transformer()
                 self.optimizer.add_param_group(
