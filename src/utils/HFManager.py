@@ -1,7 +1,7 @@
 from huggingface_hub import hf_api, hf_hub_download
 import os
 from dotenv import load_dotenv
-from utils.DBManager import DBManager
+from DBManager import DBManager
 load_dotenv()
 
 
@@ -80,6 +80,6 @@ if __name__ == "__main__":
     # hf_manager = HFManager(access_type="dataset")
     # db_manager = hf_manager.download_db()
     # hf_manager.upload_db(commit_message="Updated database from HFManager")
-    # hf_model_manager = HFManager(access_type="model")
-    # model_path = hf_model_manager.download_model()
-    # hf_model_manager.upload_model(commit_message="Updated model from HFManager")
+    hf_model_manager = HFManager(access_type="model")
+    #model_path = hf_model_manager.download_model()
+    hf_model_manager.upload_model(commit_message="Updated model from HFManager")
