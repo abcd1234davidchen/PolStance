@@ -1,0 +1,2 @@
+embedding-atlas
+huggingface-hub
