@@ -64,10 +64,10 @@ print(f"Extraction complete. Shape: {embeddings.shape}")
 
 df_embeddings = pd.DataFrame({
     "embedding": list(embeddings),
-    "label": labels,
+    "label": df["label"].tolist(),
     "text": texts,
 })
 df_embeddings.to_parquet("embeddings.parquet")
 
 # To visualize the embeddings, you can use the following command with embedding-atlas:
-# uv run embedding-atlas embeddings.parquet --vector embedding
+# uv run embedding-atlas embeddings.parquet --vector embedding --text text

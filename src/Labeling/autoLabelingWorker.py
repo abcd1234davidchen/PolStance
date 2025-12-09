@@ -13,8 +13,8 @@ import time
 from Labeling.geminiLabeling import GeminiLabeling
 from Labeling.gptLabeling import GptLabeling
 from Labeling.claudeLabeling import ClaudeLabeling
-from Labeling.utils.HFManager import HFManager
-from Labeling.utils.DBManager import DBManager
+from utils.HFManager import HFManager
+from utils.DBManager import DBManager
 
 class Color:
     RED = "\033[91m"
