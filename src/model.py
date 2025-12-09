@@ -43,7 +43,7 @@ class StanceClassifier(nn.Module):
         for param in self.transformer.parameters():
             param.requires_grad = True
 
-    def forward(self, input_ids, attention_mask):
+    def forward(self, input_ids, attention_mask,return_embeddings=False):
         if not any(p.requires_grad for p in self.transformer.parameters()):
             with torch.no_grad():
                 outputs = self.transformer(
@@ -73,6 +73,8 @@ class StanceClassifier(nn.Module):
 
         pooled_output = self.layer_norm(pooled_output)
         logits = self.classifier(pooled_output)
+        if return_embeddings:
+            return logits, pooled_output
         return logits
 
     def classifier_params(self):

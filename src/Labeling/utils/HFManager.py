@@ -2,14 +2,19 @@ from huggingface_hub import hf_api, hf_hub_download
 import os
 from dotenv import load_dotenv
 from Labeling.utils.DBManager import DBManager
-
 load_dotenv()
 
 
 class HFManager:
-    def __init__(self, filename=f"{os.getenv("DBNAME")}.db") -> None:
-        self.repo_id = "TWCKaijin/PolStance"
-        self.filename = filename
+    def __init__(self, access_type="dataset") -> None:
+        if access_type == "dataset":
+            self.repo_id = "TWCKaijin/PolStance"
+            self.filename = f"{os.getenv("DBNAME")}.db"
+            self.access_type = "dataset"
+        elif access_type == "model":
+            self.repo_id = "abcd1234davidchen/PolStance"
+            self.filename = f"{os.getenv("MODEL_NAME")}.pth"
+            self.access_type = "model"
         self.token = os.getenv("DATASET_KEY")
         self.db_manager = None
         self.db_path = None
@@ -19,7 +24,7 @@ class HFManager:
         sql_file = hf_hub_download(
             repo_id=self.repo_id,
             filename=self.filename,
-            repo_type="dataset",
+            repo_type=self.access_type,
             token=self.token,
             local_dir=os.getcwd(),
         )
@@ -37,7 +42,7 @@ class HFManager:
                 path_or_fileobj=self.db_path,
                 path_in_repo=self.filename,
                 repo_id=self.repo_id,
-                repo_type="dataset",
+                repo_type=self.access_type,
                 commit_message=commit_message,
             )
             print(f"Successfully uploaded {self.filename} to {self.repo_id}")

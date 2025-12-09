@@ -22,7 +22,7 @@ def predict_stance(text):
             input_ids=inputs["input_ids"],
             attention_mask=inputs["attention_mask"]
         )
-        probs = nn.Softmax()(outputs)
+        probs = nn.Softmax(dim=1)(outputs)
         print(probs)
         predicted_class = torch.argmax(probs, dim=1).item()
         confidence = probs[0][predicted_class].item()
