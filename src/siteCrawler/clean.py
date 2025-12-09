@@ -12,7 +12,9 @@ PHRASES = [
     "©",
     "This is a modal window",
     "點擊免費加入會員！",
-    "【加入關鍵評論網會員】每天精彩好文直送你的信箱，每週獨享編輯精選、時事精選、藝文週報等特製電子報。還可留言與作者、記者、編輯討論文章內容。立刻點擊免費加入會員！"
+    "【加入關鍵評論網會員】",
+    "每天精彩好文直送你的信箱，每週獨享編輯精選、時事精選、藝文週報等特製電子報。還可留言與作者、記者、編輯討論文章內容。",
+    "立刻點擊免費加入會員。",
 ]
 
 def text_columns(conn, table):
@@ -69,7 +71,7 @@ def remove_row(db_path):
     cursor.execute('DELETE FROM articleTable WHERE article = "?"')
     cursor.execute('SELECT id,article FROM articleTable WHERE article IS NOT NULL AND article != "?"')
     articles = cursor.fetchall()
-    for article_id, article in articlesuv:
+    for article_id, article in articles:
         if article is None or article=="":
             continue
         if len(article.strip()) < 50:
@@ -79,7 +81,7 @@ def remove_row(db_path):
 
 def main():
     clean_db("article.db")
-    remove_row("article.db")
+    # remove_row("article.db")
 
 if __name__ == "__main__":
     main()
