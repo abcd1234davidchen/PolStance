@@ -17,8 +17,8 @@ class Trainer:
         val_loader,
         test_loader,
         device,
-        num_epochs=16,
-        warmup_epochs=6,
+        num_epochs,
+        warmup_epochs,
         patience=4,
         save_path="stance_classifier.pth",
         supcon_mode=False, 
@@ -186,6 +186,12 @@ class Trainer:
         for epoch in range(self.num_epochs):
             if epoch == self.warmup_epochs and not self.supcon_mode:
                 print("Unfreezing transformer for fine-tuning...")
+                self.model.unfreeze_transformer()
+                self.optimizer.add_param_group(
+                    {"params": self.model.transformer.parameters(), "lr": 2e-6}
+                )
+            elif self.supcon_mode:
+                print("Unfreezing transformer for SupCon...")
                 self.model.unfreeze_transformer()
                 self.optimizer.add_param_group(
                     {"params": self.model.transformer.parameters(), "lr": 2e-6}

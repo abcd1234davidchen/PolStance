@@ -7,15 +7,15 @@ load_dotenv()
 
 
 class HFManager:
-    def __init__(self, access_type) -> None:
+    def __init__(self, access_type, filename) -> None:
         if access_type == "dataset":
             self.repo_id = "TWCKaijin/PolStance"
-            self.filename = f"{os.getenv("DBNAME")}"
+            self.filename = filename
             self.access_type = "dataset"
             self.token = os.getenv("DATASET_KEY")
         elif access_type == "model":
             self.repo_id = "abcd1234davidchen/PolStanceBERT"
-            self.filename = f"{os.getenv("MODEL_NAME")}.pth"
+            self.filename = filename
             self.access_type = "model"
             self.token = os.getenv("MODEL_KEY")
         self.db_manager = None
@@ -81,7 +81,7 @@ if __name__ == "__main__":
     parser.add_argument("--filename", type=str, default="") 
     args = parser.parse_args()
 
-    hf_manager = HFManager(access_type=args.access_type)
+    hf_manager = HFManager(access_type=args.access_type, filename=args.filename)
 
     if args.action == "upload" and args.access_type == "dataset":
         hf_manager.upload_db(commit_message=args.commit_message)

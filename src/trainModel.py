@@ -28,7 +28,7 @@ def main():
     # Configuration
     CHECKPOINT = "ckiplab/bert-base-chinese"
     MAX_LENGTH = 512
-    BATCH_SIZE = 32
+    BATCH_SIZE = 16
     NUM_CLASSES = 3
     NUM_EPOCHS = args.epochs
     WARM_UP_EPOCHS = 6
@@ -74,11 +74,17 @@ def main():
         f"Train size: {len(train_df)}, Val size: {len(val_df)}, Test size: {len(test_df)}"
     )
 
+    # 定義要遮罩的敏感關鍵字，減少模型對特定政黨名稱的依賴
+    SENSITIVE_KEYWORDS = ["國民黨", "民進黨", "中國國民黨", "民主進步黨"]
+    MASK_PROB = 0.5  # 50% 的機率遮罩些詞
+    
     train_dataset = StanceDataset(
         texts=train_df["article"].tolist(),
         labels=train_df["label"].tolist(),
         tokenizer=tokenizer,
         max_length=MAX_LENGTH,
+        mask_keywords=SENSITIVE_KEYWORDS,
+        mask_prob=MASK_PROB
     )
     val_dataset = StanceDataset(
         texts=val_df["article"].tolist(),

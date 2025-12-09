@@ -5,16 +5,28 @@ import sqlite3
 
 
 class StanceDataset(Dataset):
-    def __init__(self, texts, labels, tokenizer, max_length=64, split=None):
+    def __init__(self, texts, labels, tokenizer, max_length=64, split=None, mask_keywords=None, mask_prob=0.0):
         self.texts = texts
         self.labels = labels
         self.tokenizer = tokenizer
         self.max_length = max_length
+        self.mask_keywords = mask_keywords if mask_keywords else []
+        self.mask_prob = mask_prob
+
     def __len__(self):
         return len(self.texts)
 
     def __getitem__(self, idx):
         text = str(self.texts[idx])
+        
+        # Keyword Masking Strategy
+        if self.mask_keywords and self.mask_prob > 0:
+            import random
+            if random.random() < self.mask_prob:
+                for keyword in self.mask_keywords:
+                    if keyword in text:
+                        text = text.replace(keyword, self.tokenizer.mask_token)
+        
         label = self.labels[idx]
         encoding = self.tokenizer(
             text,

@@ -15,7 +15,7 @@ class StanceClassifier(nn.Module):
         l3 = l2 // 2
         # classifier expects pooled token representation (batch, hidden)
         self.classifier = nn.Sequential(
-            nn.Linear(l0, l1),
+            nn.Linear(l0, l1),  
             nn.LayerNorm(l1),
             nn.GELU(),
             nn.Dropout(dropout_rate),
