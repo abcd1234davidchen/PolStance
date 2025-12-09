@@ -25,4 +25,5 @@ dependencies = [
 [dependency-groups]
 dev = [
     "embedding-atlas>=0.13.0",
+    "uv>=0.9.16",
 ]

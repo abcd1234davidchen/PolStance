@@ -3,7 +3,7 @@ import torch.nn as nn
 from torch.optim import AdamW
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from tqdm import tqdm
-
+from utils.HFManager import HFManager
 
 from pytorch_metric_learning import losses
 
@@ -243,6 +243,7 @@ class Trainer:
                 patience_counter = 0
                 print("New best model found, saving...")
                 torch.save(self.model.state_dict(), self.save_path)
+                
             else:
                 patience_counter += 1
                 if patience_counter >= self.patience:
@@ -256,3 +257,4 @@ class Trainer:
         print(
             f"Test Loss: {test_metrics['loss']:.4f}, Test Acc: {test_metrics['accuracy']:.4f}"
         )
+        HFManager(access_type="model").upload_model(commit_message="Upload trained stance classifier model")

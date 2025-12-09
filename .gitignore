@@ -21,6 +21,8 @@ articles.json
 
 # Database files
 *.db
+*.db-shm
+*.db-wal
 *.parquet
 
 # Model files

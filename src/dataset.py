@@ -28,7 +28,6 @@ class StanceDataset(Dataset):
         item["text"] = text
         return item
 
-
 def create_dataset(db_path):
     conn = sqlite3.connect(db_path)
     df = pd.read_sql_query("SELECT url, article, label, title FROM articleTable", conn)
