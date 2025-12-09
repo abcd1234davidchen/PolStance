@@ -2,14 +2,15 @@ from huggingface_hub import hf_api, hf_hub_download
 import os
 from dotenv import load_dotenv
 from DBManager import DBManager
+import argparse
 load_dotenv()
 
 
 class HFManager:
-    def __init__(self, access_type="dataset") -> None:
+    def __init__(self, access_type) -> None:
         if access_type == "dataset":
             self.repo_id = "TWCKaijin/PolStance"
-            self.filename = f"{os.getenv("DBNAME")}.db"
+            self.filename = f"{os.getenv("DBNAME")}"
             self.access_type = "dataset"
             self.token = os.getenv("DATASET_KEY")
         elif access_type == "model":
@@ -36,12 +37,9 @@ class HFManager:
 
     
     def upload_db(self, commit_message="Update automatcally") -> None:
-        if self.db_manager:
-            self.db_manager.close()
-
-        if self.db_path and os.path.exists(self.db_path):
+        if os.path.exists(self.filename):
             self.hf_api.upload_file(
-                path_or_fileobj=self.db_path,
+                path_or_fileobj=self.filename,
                 path_in_repo=self.filename,
                 repo_id=self.repo_id,
                 repo_type=self.access_type,
@@ -76,10 +74,21 @@ class HFManager:
         return model_file
     
 if __name__ == "__main__":
-    pass
-    # hf_manager = HFManager(access_type="dataset")
-    # db_manager = hf_manager.download_db()
-    # hf_manager.upload_db(commit_message="Updated database from HFManager")
-    hf_model_manager = HFManager(access_type="model")
-    #model_path = hf_model_manager.download_model()
-    hf_model_manager.upload_model(commit_message="Updated model from HFManager")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--action", type=str, default="upload")
+    parser.add_argument("--access_type", type=str, default="dataset")
+    parser.add_argument("--commit_message", type=str, default="Update automatcally")
+    parser.add_argument("--filename", type=str, default="") 
+    args = parser.parse_args()
+
+    hf_manager = HFManager(access_type=args.access_type)
+
+    if args.action == "upload" and args.access_type == "dataset":
+        hf_manager.upload_db(commit_message=args.commit_message)
+    elif args.action == "download" and args.access_type == "dataset":
+        hf_manager.download_db()
+    
+    elif args.action == "upload" and args.access_type == "model":
+        hf_manager.upload_model(commit_message=args.commit_message)
+    elif args.action == "download" and args.access_type == "model":
+        hf_manager.download_model()
