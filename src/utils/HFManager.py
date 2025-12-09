@@ -1,7 +1,7 @@
 from huggingface_hub import hf_api, hf_hub_download
 import os
 from dotenv import load_dotenv
-from DBManager import DBManager
+from DBManager import DBManager # type: ignore
 import argparse
 load_dotenv()
 
