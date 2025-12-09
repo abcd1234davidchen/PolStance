@@ -6,68 +6,99 @@ from torch.utils.data import DataLoader
 from dataset import StanceDataset, create_dataset
 from transformers import AutoModel , BertTokenizerFast
 from model import StanceClassifier
+import os
+from dotenv import load_dotenv
 
-def extract_embeddings(model, loader, device):
+def extract_data(model, loader, device):
     model.eval()
     all_embeddings = []
-    all_labels = []
+    all_true_labels = []
+    all_pred_labels = []
     all_texts = []
     
     with torch.no_grad():
-        for batch in tqdm(loader, desc="Extracting Embeddings"):
+        for batch in tqdm(loader, desc="Running Inference"):
             input_ids = batch['input_ids'].to(device)
             attention_mask = batch['attention_mask'].to(device)
             labels = batch['labels'].cpu().numpy()
                 
-            _, embeddings = model(input_ids=input_ids, attention_mask=attention_mask, return_embeddings=True)
+            # Forward pass: get both logits and embeddings
+            logits, embeddings = model(input_ids=input_ids, attention_mask=attention_mask, return_embeddings=True)
+            
+            # Get predictions
+            predictions = torch.argmax(logits, dim=1).cpu().numpy()
 
             if isinstance(embeddings, torch.Tensor):
                 embeddings = embeddings.cpu().numpy()
             
             all_embeddings.append(embeddings)
-            all_labels.append(labels)
+            all_true_labels.append(labels)
+            all_pred_labels.append(predictions)
             all_texts.extend(batch['text'])
         
         all_embeddings = np.concatenate(all_embeddings, axis=0)
-        all_labels = np.concatenate(all_labels, axis=0)
+        all_true_labels = np.concatenate(all_true_labels, axis=0)
+        all_pred_labels = np.concatenate(all_pred_labels, axis=0)
         
-    return all_embeddings, all_labels, all_texts
+    return all_embeddings, all_true_labels, all_pred_labels, all_texts
 
-device = torch.device("mps" if torch.backends.mps.is_available() else "cuda" if torch.cuda.is_available() else "cpu")
-print(f"Using device: {device}")
+def main():
+    load_dotenv()
+    device = torch.device("mps" if torch.backends.mps.is_available() else "cuda" if torch.cuda.is_available() else "cpu")
+    print(f"Using device: {device}")
 
-checkpoint = "ckiplab/bert-base-chinese"
-tokenizer = BertTokenizerFast.from_pretrained('bert-base-chinese')
-base_model = AutoModel.from_pretrained(checkpoint)
+    # Use the classifier model (Stage 2 output) which has the trained head
+    CHECKPOINT_PATH = "stance_classifier.pth"
+    if not os.path.exists(CHECKPOINT_PATH):
+        print(f"Warning: {CHECKPOINT_PATH} not found. Trying stance_embedder.pth (Embeddings only)...")
+        CHECKPOINT_PATH = "stance_embedder.pth"
 
-model = StanceClassifier(base_model, num_classes=3)
-model.load_state_dict(torch.load("stance_classifier.pth", map_location=torch.device('cpu')))
-model.to(device)
+    print(f"Loading model from {CHECKPOINT_PATH}...")
+    
+    checkpoint = "ckiplab/bert-base-chinese"
+    tokenizer = BertTokenizerFast.from_pretrained('bert-base-chinese')
+    base_model = AutoModel.from_pretrained(checkpoint)
+    base_model.resize_token_embeddings(len(tokenizer))
+    
+    model = StanceClassifier(base_model, num_classes=3)
+    try:
+        model.load_state_dict(torch.load(CHECKPOINT_PATH, map_location=device))
+    except Exception as e:
+        print(f"Error loading weights: {e}")
+        return
 
-MAX_LENGTH = 512
-BATCH_SIZE = 32
+    model.to(device)
 
-df = create_dataset("article.db")
-dataset = StanceDataset(
-    texts=df["article"].tolist(),
-    labels=df["label"].tolist(),
-    tokenizer=tokenizer,
-    max_length=512,
-)
+    MAX_LENGTH = 512
+    BATCH_SIZE = 32
 
-loader = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=False)
+    print("Loading dataset...")
+    df = create_dataset("article.db")
+    dataset = StanceDataset(
+        texts=df["article"].tolist(),
+        labels=df["label"].tolist(),
+        tokenizer=tokenizer,
+        max_length=MAX_LENGTH,
+    )
 
-# Run the extraction
-embeddings, labels, texts = extract_embeddings(model, loader, device=device)
+    loader = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=False)
 
-print(f"Extraction complete. Shape: {embeddings.shape}")
+    # Run the extraction
+    embeddings, true_labels, pred_labels, texts = extract_data(model, loader, device=device)
 
-df_embeddings = pd.DataFrame({
-    "embedding": list(embeddings),
-    "label": df["label"].tolist(),
-    "text": texts,
-})
-df_embeddings.to_parquet("embeddings.parquet")
+    print(f"Extraction complete. Embeddings shape: {embeddings.shape}")
 
-# To visualize the embeddings, you can use the following command with embedding-atlas:
-# uv run embedding-atlas embeddings.parquet --vector embedding --text text
+    df_results = pd.DataFrame({
+        "embedding": list(embeddings),
+        "true_label": true_labels,
+        "predicted_label": pred_labels,
+        "text": texts
+    })
+    
+    OUTPUT_FILE = "embeddings_with_predictions.parquet"
+    df_results.to_parquet(OUTPUT_FILE)
+    print(f"Results saved to {OUTPUT_FILE}")
+    print(df_results.head())
+
+if __name__ == "__main__":
+    main()

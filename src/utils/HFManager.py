@@ -34,6 +34,7 @@ class HFManager:
         self.db_manager = DBManager(sql_file)
         return self.db_manager
 
+    
     def upload_db(self, commit_message="Update automatcally") -> None:
         if self.db_manager:
             self.db_manager.close()
