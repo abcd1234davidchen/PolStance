@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 from torch.utils.data import DataLoader
 from model import StanceClassifier
 from dataset import StanceDataset, create_dataset
-from Labeling.utils.HFManager import HFManager
+from utils.HFManager import HFManager
 from trainer import Trainer
 
 if os.uname().nodename == "w61":
@@ -129,7 +129,6 @@ def main():
                 if hasattr(layer, 'reset_parameters'):
                     layer.reset_parameters()
                 elif isinstance(layer, torch.nn.Linear):
-                     torch.nn.init.xavier_uniform_(layer.weight)
                     torch.nn.init.zeros_(layer.bias)
                      
         else:
