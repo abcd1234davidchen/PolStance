@@ -34,7 +34,6 @@ class Trainer:
         self.warmup_epochs = warmup_epochs
         self.supcon_mode = supcon_mode
         
-        self. n = []
         self.val_losses = []
         self.train_losses = []
 
@@ -208,7 +207,7 @@ class Trainer:
                 else:
                     print("Skipped a batch due to NaN/Inf issues.")
 
-                if valid_batches > 0 :
+                if valid_batches > 0:
                     if self.supcon_mode:
                         pbar.set_description(
                             f"Epoch: {epoch + 1}/{self.num_epochs} Loss: {epoch_train_loss / valid_batches:.4f}"

@@ -130,7 +130,7 @@ def main():
                     layer.reset_parameters()
                 elif isinstance(layer, torch.nn.Linear):
                      torch.nn.init.xavier_uniform_(layer.weight)
-                     torch.nn.init.zeros_(layer.bias)
+                    torch.nn.init.zeros_(layer.bias)
                      
         else:
             print(f"WARNING: Checkpoint {args.checkpoint} not found! Training from scratch (not recommended for Stage 2).")

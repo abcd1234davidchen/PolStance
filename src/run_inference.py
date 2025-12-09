@@ -6,7 +6,6 @@ from torch.utils.data import DataLoader
 from dataset import StanceDataset, create_dataset
 from transformers import AutoModel, BertTokenizerFast
 from model import StanceClassifier
-import os
 from dotenv import load_dotenv
 
 def inference(model, loader, device):
