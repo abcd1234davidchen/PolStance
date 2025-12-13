@@ -191,7 +191,7 @@ def show_confusion_matrix(
         xticklabels=labels_str,
         yticklabels=labels_str,
     )
-    plt.setp(ax.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
+    plt.setp(ax.get_xticklabels(), ha="right", rotation_mode="anchor")
 
     thresh = cm.max() / 2.0 if cm.size else 0.0
     for i in range(cm.shape[0]):
@@ -204,7 +204,7 @@ def show_confusion_matrix(
                 va="center",
                 color="white" if cm[i, j] > thresh else "black",
             )
-
+    
     fig.tight_layout()
     plt.show()
 
@@ -258,7 +258,8 @@ def run_pipeline(args: argparse.Namespace) -> None:
     fit_params = {}
     if args.algo == "xgb" and X_val is not None:
         fit_params = {"eval_set": [(X_val, y_val)], "verbose": False}
-
+    elif args.algo == "rf" and X_val is not None:
+        fit_params = {"bootstrap": True, "n_estimators": 150, "max_depth": 15}
     model = factory(n_classes=len(np.unique(y)), random_state=args.random_state)
     model.fit(X_train, y_train, **fit_params)
 
