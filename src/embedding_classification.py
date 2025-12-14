@@ -15,8 +15,11 @@ from sklearn.metrics import (
     classification_report,
     confusion_matrix,
     f1_score,
+    fbeta_score,
+    roc_auc_score,
 )
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelBinarizer
 
 # Set up logging
 logging.basicConfig(
@@ -131,22 +134,95 @@ MODEL_DISPATCH: Dict[str, Callable] = {
 
 
 # Evaluation
+def find_optimal_threshold(y_true: np.ndarray, y_proba: np.ndarray) -> Tuple[float, float]:
+    """
+    Finds the threshold that maximizes the F1 score for binary classification.
+    Returns (best_threshold, best_f1).
+    """
+    from sklearn.metrics import precision_recall_curve
+    
+    precisions, recalls, thresholds = precision_recall_curve(y_true, y_proba)
+    # F1 = 2 * (P * R) / (P + R)
+    with np.errstate(divide='ignore', invalid='ignore'):
+        f1_scores = 2 * (precisions[:-1] * recalls[:-1]) / (precisions[:-1] + recalls[:-1])
+    
+    f1_scores = np.nan_to_num(f1_scores)
+    best_idx = np.argmax(f1_scores)
+    
+    return thresholds[best_idx], f1_scores[best_idx]
+
 def print_metrics(
     y_true: np.ndarray,
     y_pred: np.ndarray,
     title: str,
     *,
+    y_proba: Optional[np.ndarray] = None,
     labels: Optional[Sequence[Union[int, str]]] = None,
     cm: Optional[np.ndarray] = None,
 ) -> None:
     print(f"\n{'=' * 10} {title} {'=' * 10}")
+    
+    # 1. Default Metrics (Threshold = 0.5 for binary implicit)
+    print("--- Default Threshold (0.5) ---")
     print(f"Accuracy:    {accuracy_score(y_true, y_pred):.4f}")
-    print(
-        f"F1 (Macro):  {f1_score(y_true, y_pred, average='macro', zero_division=0):.4f}"
-    )
-    print(
-        f"F1 (Wtd):    {f1_score(y_true, y_pred, average='weighted', zero_division=0):.4f}"
-    )
+    print(f"F1 (Macro):  {f1_score(y_true, y_pred, average='macro', zero_division=0):.4f}")
+    print(f"F1 (Wtd):    {f1_score(y_true, y_pred, average='weighted', zero_division=0):.4f}")
+    print(f"F2 (Wtd):    {fbeta_score(y_true, y_pred, beta=2, average='weighted', zero_division=0):.4f}")
+
+    # 2. ROC AUC & Optimal Threshold (Binary only usually)
+    try:
+        lb = LabelBinarizer()
+        y_true_bin = lb.fit_transform(y_true)
+        
+        # Determine if binary or multiclass
+        is_binary = (y_true_bin.shape[1] == 1)
+        n_classes = len(lb.classes_)
+        
+        y_score = None
+        if y_proba is not None:
+            if is_binary and y_proba.ndim == 2 and y_proba.shape[1] == 2:
+                # Binary: Use probability of positive class (index 1)
+                y_score = y_proba[:, 1]
+            else:
+                y_score = y_proba
+        
+        # ROC AUC
+        if y_score is not None:
+            if is_binary:
+                auc = roc_auc_score(y_true, y_score)
+                print(f"ROC AUC:     {auc:.4f}")
+                
+                # --- STRATEGY: Find Optimal Threshold ---
+                # Only makes sense if we have probabilities for the positive class
+                thresh, best_f1 = find_optimal_threshold(y_true_bin, y_score)
+                print(f"\n--- Optimal Threshold (Maximize F1) ---")
+                print(f"Best Threshold: {thresh:.4f}")
+                print(f"Best F1 Score:  {best_f1:.4f}")
+                
+                # Re-calculate metrics with new threshold
+                y_pred_opt = (y_score >= thresh).astype(int)
+                # Map 0/1 back to original labels if needed, but assuming 0/1 for binary here
+                # Or use lb.inverse_transform if labels are strings, but y_true_bin is 0/1.
+                
+                acc_opt = accuracy_score(y_true_bin, y_pred_opt)
+                f2_opt = fbeta_score(y_true_bin, y_pred_opt, beta=2, zero_division=0)
+                print(f"Accuracy:       {acc_opt:.4f}")
+                print(f"F2 Score:       {f2_opt:.4f}")
+                print("(Note: These metrics are based on the optimized threshold)")
+                
+            else:
+                # Multiclass
+                try:
+                    auc = roc_auc_score(y_true_bin, y_score, multi_class='ovr', average='weighted')
+                    print(f"ROC AUC (Wtd, OvR): {auc:.4f}")
+                except Exception as inner_e:
+                    print(f"ROC AUC Error: {inner_e}")
+        else:
+            print("ROC AUC: N/A (No probabilities)")
+
+    except Exception as e:
+        print(f"Could not calculate ROC AUC or Threshold: {e}")
+
     print(
         "\nReport:\n",
         classification_report(
@@ -162,21 +238,23 @@ def print_metrics(
     print("Confusion Matrix:\n", cm)
 
 
-def show_confusion_matrix(
+def plot_confusion_matrix(
     cm: np.ndarray,
     labels: Sequence[Union[int, str]],
     *,
     title: str = "Confusion Matrix",
     cmap: str = "Blues",
+    output_file: Optional[str] = None,
 ) -> None:
     """
-    Display a confusion matrix using matplotlib.
+    Display or save a confusion matrix using matplotlib.
     """
     import matplotlib.pyplot as plt
 
     labels_str = [str(x) for x in labels]
     n = len(labels_str)
-    figsize = (max(6, int(1.2 * n)), max(4, int(1.0 * n)))
+    # Dynamic figsize
+    figsize = (max(8, int(1.0 * n) + 2), max(6, int(0.8 * n) + 2))
 
     fig, ax = plt.subplots(figsize=figsize)
     im = ax.imshow(cm, interpolation="nearest", cmap=cmap)
@@ -193,6 +271,7 @@ def show_confusion_matrix(
     )
     plt.setp(ax.get_xticklabels(), ha="right", rotation_mode="anchor")
 
+    # Threshold for text color
     thresh = cm.max() / 2.0 if cm.size else 0.0
     for i in range(cm.shape[0]):
         for j in range(cm.shape[1]):
@@ -206,7 +285,14 @@ def show_confusion_matrix(
             )
     
     fig.tight_layout()
-    plt.show()
+    
+    if output_file:
+        plt.savefig(output_file, dpi=300, bbox_inches='tight')
+        print(f"Confusion matrix saved to {output_file}")
+    else:
+        plt.show()
+    
+    plt.close(fig)
 
 
 # Main Logic
@@ -265,21 +351,37 @@ def run_pipeline(args: argparse.Namespace) -> None:
 
     # 4. Evaluate
     y_pred = model.predict(X_test)
+    
+    # Get probabilities if supported
+    y_proba = None
+    if hasattr(model, "predict_proba"):
+        try:
+            y_proba = model.predict_proba(X_test)
+        except Exception as e:
+            logger.warning(f"Could not predict proba: {e}")
+
     labels = np.unique(np.concatenate([y_test, y_pred]))
     cm = confusion_matrix(y_test, y_pred, labels=list(labels))
     print_metrics(
         y_test,
         y_pred,
         title=f"{args.algo.upper()} Test Results",
+        y_proba=y_proba,
         labels=labels,
         cm=cm,
     )
 
-    if args.show_cm:
-        show_confusion_matrix(
+    if args.show_cm or args.cm_output:
+        # Handle auto filename
+        output_file = args.cm_output
+        if output_file and output_file.lower() == "auto":
+            output_file = f"{args.algo}_confusion_matrix.png"
+
+        plot_confusion_matrix(
             cm,
             labels,
             title=f"{args.algo.upper()} Confusion Matrix",
+            output_file=output_file
         )
 
     # 5. Save Artifacts
@@ -333,7 +435,13 @@ if __name__ == "__main__":
     parser.add_argument(
         "--show_cm",
         action="store_true",
-        help="Display confusion matrix with matplotlib",
+        help="Display confusion matrix with matplotlib (interactive)",
+    )
+    parser.add_argument(
+        "--cm_output",
+        type=str,
+        default=None,
+        help="Path to save confusion matrix image (e.g., cm.png)",
     )
 
     try:
