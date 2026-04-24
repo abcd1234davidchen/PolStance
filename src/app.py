@@ -14,9 +14,7 @@ base_model = AutoModel.from_pretrained(checkpoint)
 
 model = StanceClassifier(base_model, num_classes=3)
 
-dict_path = huggingface_hub.hf_hub_download(repo_id="abcd1234davidchen/PolStanceBERT",filename="stance_classifier.pth",local_dir=".",local_dir_use_symlinks=False)
-
-model.load_state_dict(torch.load(dict_path, map_location=torch.device('cpu')))
+model.load_state_dict(torch.load("stance_classifier.pth", map_location=torch.device('cpu')))
 model.eval()
 labels = ['KMT', 'DPP', 'Neutral']
 
